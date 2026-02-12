@@ -1,0 +1,300 @@
+/**
+ * LLM Manager UI - Main Stylesheet
+ * Handles theming, layout, and component styling.
+ */
+
+:root,
+[data-bs-theme="light"] {
+    --bs-body-bg: #f8f9fa;
+    --navbar-bg: #ffffff;
+    --card-bg: #ffffff;
+}
+
+[data-bs-theme="dark"] {
+    --bs-body-bg: #1a1a1a;
+    --navbar-bg: #212529;
+    --card-bg: #2d2d2d;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+#main-navbar {
+    background-color: var(--navbar-bg);
+}
+
+.navbar-brand {
+    font-size: 1.25rem;
+}
+
+.navbar-brand i {
+    color: #0d6efd;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    background-color: var(--card-bg);
+}
+
+.table-sm td,
+.table-sm th {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    cursor: default;
+}
+
+.model-name-cell {
+    font-weight: 500;
+}
+
+.status-badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+}
+
+.alert {
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+footer {
+    margin-top: auto;
+    background-color: var(--navbar-bg);
+}
+
+.running-model-item {
+    padding: 0.375rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.running-model-item:last-child {
+    border-bottom: none;
+}
+
+#theme-toggle {
+    border: none;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Sortable table styles */
+.sortable th {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.sortable th:hover {
+    background-color: var(--bs-tertiary-bg);
+}
+
+.sortable th.no-sort {
+    cursor: default;
+}
+
+.sortable th.no-sort:hover {
+    background-color: transparent;
+}
+
+.sortable th[aria-sort="ascending"]::after {
+    content: " ▲";
+    font-size: 0.7em;
+}
+
+.sortable th[aria-sort="descending"]::after {
+    content: " ▼";
+    font-size: 0.7em;
+}
+
+/* Chat container fills available height */
+#prompt-panel .card {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 220px);
+    min-height: 400px;
+}
+
+#prompt-panel .card-header {
+    flex-shrink: 0;
+}
+
+#prompt-panel .card-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#chat-messages {
+    flex: 1;
+    overflow-y: auto;
+}
+
+#prompt-panel .card-footer {
+    flex-shrink: 0;
+}
+
+/* Options collapse should not expand */
+#prompt-options {
+    flex-shrink: 0;
+}
+
+#prompt-options .card {
+    height: auto;
+    min-height: auto;
+}
+
+@media (max-width: 768px) {
+    .d-flex.gap-2 {
+        flex-wrap: wrap;
+    }
+
+    #model-name-input {
+        width: 100% !important;
+    }
+}
+
+.model-item {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.model-actions {
+    margin-top: 0.75rem;
+    width: 100%;
+}
+
+.model-actions .btn {
+    flex: 1;
+}
+}
+
+/* Markdown content styling */
+.markdown-content {
+    line-height: 1.6;
+}
+
+.markdown-content p {
+    margin-bottom: 0.75rem;
+}
+
+.markdown-content p:last-child {
+    margin-bottom: 0;
+}
+
+.markdown-content pre {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+}
+
+[data-bs-theme="dark"] .markdown-content pre {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.markdown-content code {
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+    font-family: 'Courier New', monospace;
+}
+
+[data-bs-theme="dark"] .markdown-content code {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.markdown-content pre code {
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+    margin-bottom: 0.75rem;
+    padding-left: 1.5rem;
+}
+
+.markdown-content li {
+    margin-bottom: 0.25rem;
+}
+
+.markdown-content blockquote {
+    border-left: 3px solid var(--bs-border-color);
+    padding-left: 1rem;
+    margin: 0.5rem 0;
+    opacity: 0.8;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.markdown-content h1:first-child,
+.markdown-content h2:first-child,
+.markdown-content h3:first-child,
+.markdown-content h4:first-child,
+.markdown-content h5:first-child,
+.markdown-content h6:first-child {
+    margin-top: 0;
+}
+
+.markdown-content a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.markdown-content a:hover {
+    opacity: 0.8;
+}
+
+.markdown-content table {
+    width: 100%;
+    margin: 0.5rem 0;
+    border-collapse: collapse;
+}
+
+.markdown-content table th,
+.markdown-content table td {
+    border: 1px solid var(--bs-border-color);
+    padding: 0.5rem;
+}
+
+.markdown-content table th {
+    background-color: rgba(0, 0, 0, 0.05);
+    font-weight: 600;
+}
+
+[data-bs-theme="dark"] .markdown-content table th {
+    background-color: rgba(0, 0, 0, 0.3);
+}

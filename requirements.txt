@@ -1,0 +1,13 @@
+## lint
+djlint
+ruff
+## fastapi
+fastapi
+uvicorn[standard]
+python-socketio
+python-multipart
+jinja2
+aiofiles
+setuptools
+## ollama api
+httpx

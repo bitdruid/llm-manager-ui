@@ -1,0 +1,11 @@
+services:
+  llmm:
+    container_name: llm-manager-ui
+    image: llm-manager-ui:latest
+    build:
+      context: .
+    ports:
+      - "5000:5000"
+    environment:
+      - OLLAMA_URL=http://localhost:11434
+    restart: unless-stopped

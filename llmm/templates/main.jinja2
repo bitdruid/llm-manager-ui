@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        {% include "head.jinja2" %}
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg border-bottom sticky-top" id="main-navbar">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-bold" href="/">
+                    LLM Manager
+                </a>
+                <div class="ms-auto">
+                    <button class="btn btn-sm btn-outline-secondary" id="theme-toggle" title="Toggle theme">
+                        <span id="theme-icon">◐</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="container-fluid py-4">
+            {% block content %}
+                <div class="row g-4">
+                    <!-- Left Column: Stats Cards -->
+                    <div class="col-xl-3 col-lg-4">
+                        <div class="row g-3">
+                            <!-- Running Models Card -->
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-muted mb-2">
+                                            Running Models
+                                        </h6>
+                                        <div id="running-models-list">
+                                            <div class="text-muted small">
+                                                Loading...
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Total Models Card -->
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-muted mb-2">
+                                            Total Models
+                                        </h6>
+                                        <div id="total-models">
+                                            <div class="text-muted small">
+                                                Loading...
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Total Storage Card -->
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-muted mb-2">
+                                            Storage Used
+                                        </h6>
+                                        <div id="total-storage">
+                                            <div class="text-muted small">
+                                                Loading...
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Tabbed Content -->
+                    <div class="col-xl-9 col-lg-8">
+                        <!-- Tabs Navigation -->
+                        <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="models-tab" data-bs-toggle="tab" data-bs-target="#models-panel" type="button" role="tab">
+                                    Models
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="prompt-tab" data-bs-toggle="tab" data-bs-target="#prompt-panel" type="button" role="tab">
+                                    Prompt
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab Content -->
+                        <div class="tab-content" id="mainTabsContent">
+                            <!-- Models Tab -->
+                            <div class="tab-pane fade show active" id="models-panel" role="tabpanel">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center py-2">
+                                        <h6 class="mb-0">
+                                            Models
+                                        </h6>
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <input type="text" class="form-control form-control-sm" id="model-name-input" placeholder="Model name" style="width: 180px;">
+                                            <button class="btn btn-sm btn-primary" type="button" id="pull-model-btn">
+                                                Pull
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" type="button" id="reset-sort-btn" title="Reset sort order">
+                                                ↻
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="pull-status">
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover table-sm mb-0 sortable" id="models-table">
+                                            <thead>
+                                                <tr>
+                                                    <th data-sort="string">
+                                                        Model
+                                                    </th>
+                                                    <th data-sort="int">
+                                                        Size
+                                                    </th>
+                                                    <th data-sort="string">
+                                                        Params
+                                                    </th>
+                                                    <th data-sort="string">
+                                                        Format
+                                                    </th>
+                                                    <th data-sort="string">
+                                                        Quant
+                                                    </th>
+                                                    <th class="no-sort" style="width: 60px;">
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="models-list">
+                                                <tr>
+                                                    <td colspan="6" class="text-muted text-center py-3">
+                                                        Loading...
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Prompt Tab -->
+                            <div class="tab-pane fade" id="prompt-panel" role="tabpanel">
+                                <div class="card">
+                                    <div class="card-header py-2">
+                                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                                            <select class="form-select form-select-sm" id="chat-model-select" style="width: 180px;">
+                                                <option value="">
+                                                    Select model...
+                                                </option>
+                                            </select>
+                                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#prompt-options" title="Options">
+                                                ⚙ Options
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary ms-auto" type="button" id="clear-chat-btn" title="Clear">
+                                                Clear
+                                            </button>
+                                        </div>
+                                        <!-- Collapsible Options Panel -->
+                                        <div class="collapse mt-2" id="prompt-options">
+                                            <div class="card card-body py-2 px-3">
+                                                <div class="row g-2 small">
+                                                    <div class="col-md-3 col-6">
+                                                        <label class="form-label mb-1">
+                                                            Temperature
+                                                        </label>
+                                                        <input type="number" class="form-control form-control-sm" id="opt-temperature" value="0.7" min="0" max="2" step="0.1">
+                                                    </div>
+                                                    <div class="col-md-3 col-6">
+                                                        <label class="form-label mb-1">
+                                                            Top K
+                                                        </label>
+                                                        <input type="number" class="form-control form-control-sm" id="opt-top-k" value="40" min="1" max="100" step="1">
+                                                    </div>
+                                                    <div class="col-md-3 col-6">
+                                                        <label class="form-label mb-1">
+                                                            Top P
+                                                        </label>
+                                                        <input type="number" class="form-control form-control-sm" id="opt-top-p" value="0.9" min="0" max="1" step="0.05">
+                                                    </div>
+                                                    <div class="col-md-3 col-6">
+                                                        <label class="form-label mb-1">
+                                                            Repeat Penalty
+                                                        </label>
+                                                        <input type="number" class="form-control form-control-sm" id="opt-repeat-penalty" value="1.1" min="0" max="2" step="0.1">
+                                                    </div>
+                                                    <div class="col-md-3 col-6">
+                                                        <label class="form-label mb-1">
+                                                            Seed
+                                                        </label>
+                                                        <input type="number" class="form-control form-control-sm" id="opt-seed" placeholder="Random" min="0">
+                                                    </div>
+                                                    <div class="col-md-3 col-6">
+                                                        <label class="form-label mb-1">
+                                                            Num Predict
+                                                        </label>
+                                                        <input type="number" class="form-control form-control-sm" id="opt-num-predict" value="4096" min="-1" step="1">
+                                                    </div>
+                                                    <div class="col-md-3 col-6">
+                                                        <label class="form-label mb-1">
+                                                            Num Context
+                                                        </label>
+                                                        <input type="number" class="form-control form-control-sm" id="opt-num-ctx" value="4096" min="128" step="128">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div id="chat-messages" class="p-3">
+                                            <div class="text-muted text-center py-4">
+                                                Select a model and start chatting
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer py-2">
+                                        <div class="d-flex gap-2">
+                                            <textarea class="form-control form-control-sm" id="chat-input" placeholder="Type your message..." rows="2" style="resize: none;"></textarea>
+                                            <button class="btn btn-primary" type="button" id="send-chat-btn" style="min-width: 70px;">
+                                                Send
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endblock content %}
+        </main>
+
+        <footer class="mt-auto py-3 border-top" id="main-footer">
+            <div class="container-fluid text-center text-muted small">
+                <span>LLM Manager UI v{{ version }}</span>
+                <span class="mx-2">•</span>
+                <a href="{{ github_url }}" target="_blank" rel="noopener" class="text-muted text-decoration-none">GitHub</a>
+                <span class="mx-2">•</span>
+                <span>by {{ author }}</span>
+            </div>
+        </footer>
+    </body>
+</html>
