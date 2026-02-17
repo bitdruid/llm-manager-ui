@@ -1,18 +1,22 @@
 [build-system]
-requires = ["hatchling >= 1.26", "hatch-requirements-txt"]
+requires = [ "hatchling >= 1.26", "hatch-requirements-txt" ]
 build-backend = "hatchling.build"
 
 
 [project]
 name = "llm-manager-ui"
-version = "1.0.0"
+version = "1.0.1"
 description = "Web UI to manage Ollama LLM server models"
-dynamic = ["dependencies"]
+dynamic = [ "dependencies" ]
 
 
 [[project.authors]]
 name = "bitdruid"
 email = "bitdruid@outlook.com"
+
+
+[project.urls]
+homepage = "https://github.com/bitdruid/llm-manager-ui"
 
 
 [tool.hatch.metadata]
@@ -22,12 +26,9 @@ allow-direct-references = true
 [tool.hatch.metadata.hooks.requirements_txt]
 file = "requirements.txt"
 
-[project.urls]
-homepage = "https://github.com/bitdruid/llm-manager-ui"
-
 
 [tool.hatch.build.targets.wheel]
-packages = ["llmm"]
+packages = [ "llmm" ]
 
 
 [tool.djlint]

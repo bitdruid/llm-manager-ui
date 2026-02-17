@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 
 # Default values
 OLLAMA_HOST="localhost"
-OLLAMA_PORT="11434"
+OLLAMA_PORT=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -24,7 +24,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  -h, --host HOST    Ollama server host (default: localhost)"
-            echo "  -p, --port PORT    Ollama server port (default: 11434)"
+            echo "  -p, --port PORT    Ollama server port (optional)"
             echo "      --help         Show this help message"
             exit 0
             ;;
@@ -36,8 +36,15 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+OLLAMA_HOST="${OLLAMA_HOST#https://}"
+OLLAMA_HOST="${OLLAMA_HOST#http://}"
+
 # Set Ollama URL from arguments or environment
-export OLLAMA_URL="${OLLAMA_URL:-http://$OLLAMA_HOST:$OLLAMA_PORT}"
+if [ -n "$OLLAMA_PORT" ]; then
+    export OLLAMA_URL="${OLLAMA_URL:-http://$OLLAMA_HOST:$OLLAMA_PORT}"
+else
+    export OLLAMA_URL="${OLLAMA_URL:-http://$OLLAMA_HOST}"
+fi
 
 echo "Starting LLM Manager UI"
 echo "Ollama URL: $OLLAMA_URL"
@@ -49,7 +56,7 @@ if [ ! -d "venv" ]; then
     python3 -m venv venv
     source venv/bin/activate
     echo "Installing dependencies..."
-    pip install -r requirements.txt
+    pip install -e .
 else
     source venv/bin/activate
 fi
