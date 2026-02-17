@@ -122,10 +122,18 @@ async function loadModelsList() {
             <td data-sort="${params.toLowerCase()}">${params}</td>
             <td data-sort="${format.toLowerCase()}">${format}</td>
             <td data-sort="${quant.toLowerCase()}">${quant}</td>
-            <td class="text-end no-sort">
-                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteModel('${model.name}')" title="Delete">
-                    ✕
-                </button>
+            <td class="no-sort">
+                <div class="d-flex gap-1 justify-content-end align-items-center">
+                    <button class="btn btn-sm btn-outline-primary py-0 px-2 update-btn"
+                            onclick="updateModel('${model.name}')"
+                            title="Update model"
+                            data-model="${model.name}">
+                        ⟳
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteModel('${model.name}')" title="Delete">
+                        ✕
+                    </button>
+                </div>
             </td>
         </tr>
     `;
@@ -253,6 +261,123 @@ async function deleteModel(modelName) {
         loadModelsList();
     } else {
         showNotification(`Error deleting model: ${result.message}`, "danger");
+    }
+}
+
+/**
+ * Update a model with streaming progress display.
+ * @param {string} modelName - Name of the model to update.
+ */
+async function updateModel(modelName) {
+    if (!confirm(`Update ${modelName}?\n\nThis will download the latest version if available.`)) {
+        return;
+    }
+
+    // Find the update button for this model
+    const updateBtn = document.querySelector(`.update-btn[data-model="${modelName}"]`);
+    if (updateBtn) {
+        updateBtn.disabled = true;
+        updateBtn.innerHTML = "⟳";
+        updateBtn.classList.add("spinning");
+    }
+
+    // Create a temporary status area
+    const container = document.getElementById("models-list");
+    const statusRow = document.createElement("tr");
+    statusRow.id = `update-status-${modelName.replace(/[^a-zA-Z0-9]/g, "-")}`;
+    statusRow.innerHTML = `
+        <td colspan="6" class="py-2">
+            <div class="alert alert-info mb-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span id="update-status-text-${modelName.replace(/[^a-zA-Z0-9]/g, "-")}">Updating ${modelName}...</span>
+                    <span id="update-progress-percent-${modelName.replace(/[^a-zA-Z0-9]/g, "-")}"></span>
+                </div>
+                <div class="progress mt-2" style="height: 6px;">
+                    <div class="progress-bar" id="update-progress-bar-${modelName.replace(/[^a-zA-Z0-9]/g, "-")}" role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+        </td>
+    `;
+
+    // Insert status row after the model row
+    const modelRow = updateBtn?.closest("tr");
+    if (modelRow && modelRow.nextSibling) {
+        modelRow.parentNode.insertBefore(statusRow, modelRow.nextSibling);
+    } else if (modelRow) {
+        modelRow.parentNode.appendChild(statusRow);
+    }
+
+    const safeModelName = modelName.replace(/[^a-zA-Z0-9]/g, "-");
+    const statusText = document.getElementById(`update-status-text-${safeModelName}`);
+    const progressBar = document.getElementById(`update-progress-bar-${safeModelName}`);
+    const progressPercent = document.getElementById(`update-progress-percent-${safeModelName}`);
+
+    try {
+        const response = await fetch(`/api/models/update`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: modelName }),
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let lastStatus = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const text = decoder.decode(value);
+            const lines = text.split("\n");
+
+            for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+
+                        if (data.error) {
+                            showNotification(`Error updating ${modelName}: ${data.error}`, "danger");
+                            statusRow.remove();
+                            if (updateBtn) {
+                                updateBtn.disabled = false;
+                                updateBtn.innerHTML = "⟳";
+                                updateBtn.classList.remove("spinning");
+                            }
+                            return;
+                        }
+
+                        if (data.status) {
+                            lastStatus = data.status;
+                            if (statusText) statusText.textContent = `${modelName}: ${data.status}`;
+                        }
+
+                        if (data.total && data.completed !== undefined) {
+                            const percent = Math.round((data.completed / data.total) * 100);
+                            const completedStr = formatBytes(data.completed);
+                            const totalStr = formatBytes(data.total);
+                            if (progressBar) progressBar.style.width = percent + "%";
+                            if (progressPercent)
+                                progressPercent.textContent = `${completedStr} / ${totalStr} (${percent}%)`;
+                        }
+                    } catch (e) {}
+                }
+            }
+        }
+
+        showNotification(`Model "${modelName}" updated successfully!`, "success");
+        statusRow.remove();
+
+        // Reload models list to update display
+        loadModelsList();
+    } catch (error) {
+        showNotification(`Error updating model: ${error.message}`, "danger");
+        statusRow.remove();
+    }
+
+    if (updateBtn) {
+        updateBtn.disabled = false;
+        updateBtn.innerHTML = "⟳";
+        updateBtn.classList.remove("spinning");
     }
 }
 

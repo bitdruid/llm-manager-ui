@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
     setInterval(() => {
         loadTotalModels();
         loadTotalStorage();
-    }, 10000);
+    }, 30000); // 30 seconds - reduced from 10s to minimize log noise
 
     // Set up model pull functionality
     const pullBtn = document.getElementById("pull-model-btn");

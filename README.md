@@ -13,6 +13,7 @@ Web UI to manage Ollama LLM server models
 - View running models
 - Lists all installed models
 - Pull new models
+- Update models (manually via update button)
 - Delete old models
 - Chat / Generate with any model
 
@@ -36,6 +37,10 @@ docker-compose up -d --build
 ```
 - Change ENV in `docker-compose.yaml` if needed.
 - `OLLAMA_URL` - URL of the Ollama server (default: `http://localhost:11434`)
+- `LOG_LEVEL` - Logging verbosity (default: `INFO`)
+  - Options: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+  - `INFO` recommended for production (shows important operations without noise)
+  - `DEBUG` for troubleshooting (shows all operations including frequent fetches)
 
 **Access the UI** at `http://localhost:5000`
 

@@ -11,7 +11,11 @@ class Log:
     def __init__(self):
         """Initialize the logger instance."""
         self.log = logging.getLogger("llmm_log")
-        self.log.setLevel(logging.DEBUG)
+
+        # Get log level from environment variable, default to INFO
+        log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+        level = getattr(logging, log_level, logging.INFO)
+        self.log.setLevel(level)
 
     def init_llmm(self, instance_path: str):
         """Initialize logging handlers with file and console output.

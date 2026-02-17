@@ -14,14 +14,14 @@ api = APIRouter(prefix="/api")
 @api.get("/models")
 async def get_models():
     """Get list of all available models"""
-    logger.info("Fetching all models")
+    logger.debug("Fetching all models")
     return await ollama_service.list_models()
 
 
 @api.get("/models/running")
 async def get_running_models():
     """Get currently running models"""
-    logger.info("Fetching running models")
+    logger.debug("Fetching running models")
     return await ollama_service.get_running_models()
 
 
@@ -91,3 +91,18 @@ async def generate(data: dict[str, Any]):
             yield f"data: {line}\n\n"
 
     return StreamingResponse(stream_response(), media_type="text/event-stream")
+
+
+@api.post("/models/update")
+async def update_model(data: dict[str, Any]):
+    """Update a model with streaming progress"""
+    model_name = data.get("name")
+    if not model_name:
+        return {"status": "error", "message": "Model name is required"}
+    logger.info(f"Updating model: {model_name}")
+
+    async def stream_progress():
+        async for line in ollama_service.pull_model_stream(model_name):
+            yield f"data: {line}\n\n"
+
+    return StreamingResponse(stream_progress(), media_type="text/event-stream")
