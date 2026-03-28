@@ -4,6 +4,8 @@
 
 Web UI to manage Ollama LLM server models
 
+![Python](https://img.shields.io/badge/python-%3E%3D3.13-blue?logo=python&logoColor=white)
+
 <img src="media/example.png" width="666" alt="Example">
 </div>
 

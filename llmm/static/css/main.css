@@ -5,15 +5,17 @@
 
 :root,
 [data-bs-theme="light"] {
-    --bs-body-bg: #f8f9fa;
-    --navbar-bg: #ffffff;
+    --bs-body-bg: #e9ecef;
+    --navbar-bg: #f8f9fa;
     --card-bg: #ffffff;
+    --bs-border-color: #adb5bd;
 }
 
 [data-bs-theme="dark"] {
     --bs-body-bg: #1a1a1a;
     --navbar-bg: #212529;
     --card-bg: #2d2d2d;
+    --bs-border-color: #495057;
 }
 
 body {

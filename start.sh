@@ -8,6 +8,17 @@ cd "$(dirname "$0")"
 OLLAMA_HOST="localhost"
 OLLAMA_PORT=""
 
+# Show help if no arguments provided
+if [[ $# -eq 0 ]]; then
+    echo "Usage: $0 [options]"
+    echo ""
+    echo "Options:"
+    echo "  -h, --host HOST    Ollama server host (default: localhost)"
+    echo "  -p, --port PORT    Ollama server port (optional)"
+    echo "      --help         Show this help message"
+    exit 0
+fi
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in

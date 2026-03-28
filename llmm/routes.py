@@ -17,9 +17,9 @@ async def root(request: Request):
     """Render the main dashboard page."""
     logger.info("Rendering dashboard")
     return templates.TemplateResponse(
+        request,
         "main.jinja2",
         {
-            "request": request,
             "base_path": BASE_PATH,
             "version": VERSION,
             "author": AUTHOR,
