@@ -152,20 +152,21 @@ async function loadModelsList() {
  */
 async function pullModel() {
     const input = document.getElementById("model-name-input");
-    const statusDiv = document.getElementById("pull-status");
+    const statusRow = document.getElementById("pull-status");
+    const statusCell = document.getElementById("pull-status-cell");
     const btn = document.getElementById("pull-model-btn");
 
     const modelName = input.value.trim();
 
     if (!modelName) {
-        statusDiv.innerHTML = '<div class="alert alert-warning">Please enter a model name</div>';
+        showNotification("Please enter a model name", "warning");
         return;
     }
 
     btn.disabled = true;
     btn.innerHTML = "Pulling...";
-    statusDiv.innerHTML = `
-        <div class="alert alert-info mb-0">
+    statusCell.innerHTML = `
+        <div class="alert alert-primary mb-0 border-0 rounded-0 py-2">
             <div class="d-flex justify-content-between align-items-center">
                 <span id="pull-status-text">Starting pull...</span>
                 <span id="pull-progress-percent"></span>
@@ -175,6 +176,7 @@ async function pullModel() {
             </div>
         </div>
     `;
+    statusRow.classList.remove("d-none");
 
     const statusText = document.getElementById("pull-status-text");
     const progressBar = document.getElementById("pull-progress-bar");
@@ -204,7 +206,7 @@ async function pullModel() {
                         const data = JSON.parse(line.slice(6));
 
                         if (data.error) {
-                            statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                            showNotification(`Error: ${data.error}`, "danger");
                             btn.disabled = false;
                             btn.innerHTML = "Pull";
                             return;
@@ -228,15 +230,11 @@ async function pullModel() {
             }
         }
 
-        statusDiv.innerHTML = `<div class="alert alert-success">Model "${modelName}" pulled successfully!</div>`;
+        showNotification(`Model "${modelName}" pulled successfully!`, "success");
         input.value = "";
         loadModelsList();
-
-        setTimeout(() => {
-            statusDiv.innerHTML = "";
-        }, 3000);
     } catch (error) {
-        statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        showNotification(`Error: ${error.message}`, "danger");
     }
 
     btn.disabled = false;
@@ -287,7 +285,7 @@ async function updateModel(modelName) {
     statusRow.id = `update-status-${modelName.replace(/[^a-zA-Z0-9]/g, "-")}`;
     statusRow.innerHTML = `
         <td colspan="6" class="py-2">
-            <div class="alert alert-info mb-0">
+            <div class="alert alert-primary mb-0">
                 <div class="d-flex justify-content-between align-items-center">
                     <span id="update-status-text-${modelName.replace(/[^a-zA-Z0-9]/g, "-")}">Updating ${modelName}...</span>
                     <span id="update-progress-percent-${modelName.replace(/[^a-zA-Z0-9]/g, "-")}"></span>

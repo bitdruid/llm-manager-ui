@@ -36,14 +36,11 @@ main {
     font-size: 1.25rem;
 }
 
-.navbar-brand i {
-    color: #0d6efd;
-}
-
 .card {
     border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    box-shadow: none;
     background-color: var(--card-bg);
+    --bs-card-cap-bg: var(--card-bg);
 }
 
 .table-sm td,
@@ -76,6 +73,7 @@ main {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
 }
+
 
 footer {
     margin-top: auto;

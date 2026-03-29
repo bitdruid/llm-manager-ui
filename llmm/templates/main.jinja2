@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="light">
+<html lang="en" data-bs-theme="dark">
     <head>
         {% include "head.jinja2" %}
     </head>
@@ -108,11 +108,12 @@
                                             </button>
                                         </div>
                                     </div>
-                                    <div id="pull-status">
-                                    </div>
                                     <div class="table-responsive">
                                         <table class="table table-hover table-sm mb-0 sortable" id="models-table">
                                             <thead>
+                                                <tr id="pull-status" class="d-none">
+                                                    <td colspan="6" id="pull-status-cell" class="p-0"></td>
+                                                </tr>
                                                 <tr>
                                                     <th data-sort="string">
                                                         Model

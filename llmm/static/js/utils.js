@@ -38,7 +38,7 @@ initializeMarkdown();
  * Initialize theme from localStorage or default to light.
  */
 function initTheme() {
-    const savedTheme = localStorage.getItem("theme") || "light";
+    const savedTheme = localStorage.getItem("theme") || "dark";
     setTheme(savedTheme);
 }
 
@@ -122,11 +122,14 @@ function formatDate(dateString) {
  * @param {string} type - Bootstrap alert type (success, danger, info, warning).
  */
 function showNotification(message, type = "info") {
-    const statusDiv = document.getElementById("pull-status");
-    if (statusDiv) {
-        statusDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+    const statusRow = document.getElementById("pull-status");
+    const statusCell = document.getElementById("pull-status-cell");
+    if (statusRow && statusCell) {
+        statusCell.innerHTML = `<div class="alert alert-${type} mb-0 border-0 rounded-0 py-2">${message}</div>`;
+        statusRow.classList.remove("d-none");
         setTimeout(() => {
-            statusDiv.innerHTML = "";
+            statusRow.classList.add("d-none");
+            statusCell.innerHTML = "";
         }, 3000);
     } else {
         alert(message);
