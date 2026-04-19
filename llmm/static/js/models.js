@@ -13,16 +13,24 @@ async function loadRunningModels() {
     const data = await fetchAPI("/models/running");
 
     if (data.error) {
-        container.innerHTML = `<div class="alert alert-danger py-1">Error: ${data.error}</div>`;
+        const markup = `<div class="alert alert-danger py-1">Error: ${data.error}</div>`;
+        if (container.dataset.lastRenderedMarkup !== markup) {
+            container.innerHTML = markup;
+            container.dataset.lastRenderedMarkup = markup;
+        }
         return;
     }
 
     if (!data.models || data.models.length === 0) {
-        container.innerHTML = '<p class="text-muted mb-0">No models running</p>';
+        const markup = '<p class="text-muted mb-0">No models running</p>';
+        if (container.dataset.lastRenderedMarkup !== markup) {
+            container.innerHTML = markup;
+            container.dataset.lastRenderedMarkup = markup;
+        }
         return;
     }
 
-    container.innerHTML = data.models
+    const markup = data.models
         .map((model) => {
             const details = model.details || {};
             const params = details.parameter_size || "-";
@@ -33,11 +41,25 @@ async function loadRunningModels() {
                 <span class="fw-medium">${model.name}</span>
                 <small class="text-muted ms-2">${params} | ${quant}</small>
             </div>
-            <span class="badge bg-success status-badge">${model.size ? formatBytes(model.size) : "Active"}</span>
+            <div class="running-model-meta">
+                <span class="badge bg-success status-badge">${model.size ? formatBytes(model.size) : "Active"}</span>
+                <button class="btn btn-sm btn-warning py-0 px-2 icon-only-btn"
+                        type="button"
+                        onclick="unloadModel('${model.name}')"
+                        title="Unload model"
+                        aria-label="Unload model ${model.name}">
+                    <span class="icon-btn">${renderIcon("upload")}</span>
+                </button>
+            </div>
         </div>
     `;
         })
         .join("");
+
+    if (container.dataset.lastRenderedMarkup !== markup) {
+        container.innerHTML = markup;
+        container.dataset.lastRenderedMarkup = markup;
+    }
 }
 
 /**
@@ -124,14 +146,24 @@ async function loadModelsList() {
             <td data-sort="${quant.toLowerCase()}">${quant}</td>
             <td class="no-sort">
                 <div class="d-flex gap-1 justify-content-end align-items-center">
-                    <button class="btn btn-sm btn-outline-primary py-0 px-2 update-btn"
+                    <button class="btn btn-sm btn-primary py-0 px-2 update-btn icon-only-btn"
                             onclick="updateModel('${model.name}')"
                             title="Update model"
+                            aria-label="Update model ${model.name}"
                             data-model="${model.name}">
-                        ⟳
+                        <span class="icon-btn">${renderIcon("rotate-cw")}</span>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteModel('${model.name}')" title="Delete">
-                        ✕
+                    <button class="btn btn-sm btn-secondary py-0 px-2 icon-only-btn"
+                            onclick="loadModel('${model.name}')"
+                            title="Load model"
+                            aria-label="Load model ${model.name}">
+                        <span class="icon-btn">${renderIcon("download")}</span>
+                    </button>
+                    <button class="btn btn-sm btn-danger py-0 px-2 icon-only-btn"
+                            onclick="deleteModel('${model.name}')"
+                            title="Delete model"
+                            aria-label="Delete model ${model.name}">
+                        <span class="icon-btn">${renderIcon("x")}</span>
                     </button>
                 </div>
             </td>
@@ -263,6 +295,44 @@ async function deleteModel(modelName) {
 }
 
 /**
+ * Unload a running model from memory.
+ * @param {string} modelName - Name of the model to unload.
+ */
+async function unloadModel(modelName) {
+    if (!confirm(`Unload ${modelName} from memory?`)) {
+        return;
+    }
+
+    const result = await fetchAPI(`/models/${encodeURIComponent(modelName)}/unload`, {
+        method: "POST",
+    });
+
+    if (result.status === "success") {
+        showNotification(`Model "${modelName}" unloaded successfully!`, "success");
+        loadRunningModels();
+    } else {
+        showNotification(`Error unloading model: ${result.message}`, "danger");
+    }
+}
+
+/**
+ * Load a model into memory.
+ * @param {string} modelName - Name of the model to load.
+ */
+async function loadModel(modelName) {
+    const result = await fetchAPI(`/models/${encodeURIComponent(modelName)}/load`, {
+        method: "POST",
+    });
+
+    if (result.status === "success") {
+        showNotification(`Model "${modelName}" loaded successfully!`, "success");
+        loadRunningModels();
+    } else {
+        showNotification(`Error loading model: ${result.message}`, "danger");
+    }
+}
+
+/**
  * Update a model with streaming progress display.
  * @param {string} modelName - Name of the model to update.
  */
@@ -275,7 +345,6 @@ async function updateModel(modelName) {
     const updateBtn = document.querySelector(`.update-btn[data-model="${modelName}"]`);
     if (updateBtn) {
         updateBtn.disabled = true;
-        updateBtn.innerHTML = "⟳";
         updateBtn.classList.add("spinning");
     }
 
@@ -338,7 +407,6 @@ async function updateModel(modelName) {
                             statusRow.remove();
                             if (updateBtn) {
                                 updateBtn.disabled = false;
-                                updateBtn.innerHTML = "⟳";
                                 updateBtn.classList.remove("spinning");
                             }
                             return;
@@ -374,7 +442,6 @@ async function updateModel(modelName) {
 
     if (updateBtn) {
         updateBtn.disabled = false;
-        updateBtn.innerHTML = "⟳";
         updateBtn.classList.remove("spinning");
     }
 }

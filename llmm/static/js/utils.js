@@ -59,7 +59,7 @@ function setTheme(theme) {
 function updateThemeIcon(theme) {
     const icon = document.getElementById("theme-icon");
     if (icon) {
-        icon.textContent = theme === "dark" ? "☀" : "☽";
+        icon.innerHTML = renderIcon(theme === "dark" ? "sun" : "moon");
     }
 }
 

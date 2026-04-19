@@ -67,10 +67,12 @@ if [ ! -d "venv" ]; then
     python3 -m venv venv
     source venv/bin/activate
     echo "Installing dependencies..."
-    pip install -e .
 else
     source venv/bin/activate
 fi
+
+# Update the app
+pip install -e .
 
 # Run uvicorn from project root
 uvicorn llmm:sio_llmm --host 0.0.0.0 --port 5000 --reload

@@ -95,6 +95,56 @@ class OllamaService:
             logger.error(f"Error deleting model {model_name}: {e}")
             return {"status": "error", "message": str(e)}
 
+    async def unload_model(self, model_name: str) -> dict[str, Any]:
+        """Unload a running model from memory.
+
+        Args:
+            model_name: Name of the model to unload.
+
+        Returns:
+            Dictionary with status and message.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/generate",
+                    json={
+                        "model": model_name,
+                        "stream": False,
+                        "keep_alive": 0,
+                    },
+                )
+                response.raise_for_status()
+                return {"status": "success", "message": f"Model {model_name} unloaded"}
+        except Exception as e:
+            logger.error(f"Error unloading model {model_name}: {e}")
+            return {"status": "error", "message": str(e)}
+
+    async def load_model(self, model_name: str) -> dict[str, Any]:
+        """Load a model into memory.
+
+        Args:
+            model_name: Name of the model to load.
+
+        Returns:
+            Dictionary with status and message.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/generate",
+                    json={
+                        "model": model_name,
+                        "stream": False,
+                        "keep_alive": -1,
+                    },
+                )
+                response.raise_for_status()
+                return {"status": "success", "message": f"Model {model_name} loaded"}
+        except Exception as e:
+            logger.error(f"Error loading model {model_name}: {e}")
+            return {"status": "error", "message": str(e)}
+
     async def show_model_info(self, model_name: str) -> dict[str, Any]:
         """Get detailed information about a model.
 

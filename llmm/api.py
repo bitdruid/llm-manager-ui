@@ -40,14 +40,28 @@ async def pull_model(data: dict[str, Any]):
     return StreamingResponse(stream_progress(), media_type="text/event-stream")
 
 
-@api.delete("/models/{model_name}")
+@api.delete("/models/{model_name:path}")
 async def delete_model(model_name: str):
     """Delete a model"""
     logger.info(f"Deleting model: {model_name}")
     return await ollama_service.delete_model(model_name)
 
 
-@api.get("/models/{model_name}/info")
+@api.post("/models/{model_name:path}/unload")
+async def unload_model(model_name: str):
+    """Unload a running model from memory"""
+    logger.info(f"Unloading model: {model_name}")
+    return await ollama_service.unload_model(model_name)
+
+
+@api.post("/models/{model_name:path}/load")
+async def load_model(model_name: str):
+    """Load a model into memory"""
+    logger.info(f"Loading model: {model_name}")
+    return await ollama_service.load_model(model_name)
+
+
+@api.get("/models/{model_name:path}/info")
 async def get_model_info(model_name: str):
     """Get detailed information about a model"""
     logger.info(f"Fetching info for model: {model_name}")

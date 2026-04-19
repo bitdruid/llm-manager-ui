@@ -124,7 +124,7 @@ function renderChatMessages() {
     }
 
     container.innerHTML = chatMessages
-        .map((msg) => {
+        .map((msg, index) => {
             const isUser = msg.role === "user";
             const bgClass = isUser ? "bg-primary text-white" : "bg-body-secondary";
             const alignClass = isUser ? "ms-auto" : "me-auto";
@@ -138,11 +138,15 @@ function renderChatMessages() {
             } else {
                 content = md ? md.render(msg.content) : escapeHtml(msg.content);
             }
+            const resendButton = isUser
+                ? `<button type="button" class="btn btn-sm btn-outline-light mt-2 py-0 px-2" onclick="resendMessage(${index})">Resend</button>`
+                : "";
             return `
                 <div class="d-flex mb-2">
                     <div class="${alignClass} ${bgClass} rounded p-2 px-3" style="max-width: 80%;">
                         <div class="small fw-medium mb-1">${label}</div>
                         <div class="markdown-content">${content}</div>
+                        ${resendButton}
                     </div>
                 </div>
             `;
@@ -156,12 +160,44 @@ function renderChatMessages() {
  * Send a message in chat mode.
  */
 async function sendChatMessage() {
-    const modelSelect = document.getElementById("chat-model-select");
     const chatInput = document.getElementById("chat-input");
-    const sendBtn = document.getElementById("send-chat-btn");
-
-    const model = modelSelect?.value;
     const message = chatInput?.value.trim();
+    if (!message) return;
+
+    chatInput.value = "";
+    if (typeof autoResizeChatInput === "function") {
+        autoResizeChatInput();
+    }
+    await sendMessage(message);
+}
+
+/**
+ * Resend a previous user message, truncating newer chat context first.
+ * @param {number} messageIndex - Index of the user message to resend.
+ */
+async function resendMessage(messageIndex) {
+    if (isGenerating) {
+        return;
+    }
+
+    const selectedMessage = chatMessages[messageIndex];
+    if (!selectedMessage || selectedMessage.role !== "user") {
+        return;
+    }
+
+    chatMessages = chatMessages.slice(0, messageIndex);
+    renderChatMessages();
+    await sendMessage(selectedMessage.content);
+}
+
+/**
+ * Send chat message content with current context.
+ * @param {string} message - User message text.
+ */
+async function sendMessage(message) {
+    const modelSelect = document.getElementById("chat-model-select");
+    const sendBtn = document.getElementById("send-chat-btn");
+    const model = modelSelect?.value;
     const options = getPromptOptions();
 
     if (!model) {
@@ -169,17 +205,12 @@ async function sendChatMessage() {
         return;
     }
 
-    if (!message) {
-        return;
-    }
-
-    if (isGenerating) {
+    if (!message || isGenerating) {
         return;
     }
 
     // Add user message
     chatMessages.push({ role: "user", content: message });
-    chatInput.value = "";
     renderChatMessages();
 
     // Prepare for assistant response
@@ -195,24 +226,24 @@ async function sendChatMessage() {
     try {
         // Check if model supports reasoning before enabling think mode
         const supportsReasoning = await modelSupportsReasoning(model);
+        const promptMode = getPromptMode();
+        const contextMessages = chatMessages
+            .slice(0, -1)
+            .map((m) => ({ role: m.role, content: m.content }));
 
-        const endpoint = `/api/chat`;
-        const body = {
-            model: model,
-            messages: chatMessages.slice(0, -1).map((m) => ({ role: m.role, content: m.content })),
-            options: options,
-        };
-
-        // Only enable thinking if model supports it
-        if (supportsReasoning) {
-            body.think = true;
-        }
-
-        const response = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-        });
+        const response =
+            promptMode === "generate"
+                ? await generate({
+                      model: model,
+                      prompt: message,
+                      options: options,
+                  })
+                : await chat({
+                      model: model,
+                      messages: contextMessages,
+                      options: options,
+                      think: supportsReasoning,
+                  });
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -240,6 +271,7 @@ async function sendChatMessage() {
                             chatMessages[chatMessages.length - 1].content += data.message.content;
                             renderChatMessages();
                         }
+
                         // Handle thinking content if present
                         if (data.message && data.message.thinking) {
                             chatMessages[chatMessages.length - 1].thinking += data.message.thinking;
@@ -252,11 +284,11 @@ async function sendChatMessage() {
     } catch (error) {
         chatMessages[chatMessages.length - 1].content = `Error: ${error.message}`;
         renderChatMessages();
+    } finally {
+        isGenerating = false;
+        sendBtn.disabled = false;
+        sendBtn.textContent = "Send";
     }
-
-    isGenerating = false;
-    sendBtn.disabled = false;
-    sendBtn.textContent = "Send";
 }
 
 /**

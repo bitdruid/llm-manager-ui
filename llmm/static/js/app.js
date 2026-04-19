@@ -3,6 +3,17 @@
  * @description Initializes the application and sets up event listeners.
  */
 
+function autoResizeChatInput() {
+    const chatInput = document.getElementById("chat-input");
+    if (!chatInput) return;
+
+    chatInput.style.height = "auto";
+    const maxHeight = parseFloat(getComputedStyle(chatInput).maxHeight) || Infinity;
+    const nextHeight = Math.min(chatInput.scrollHeight, maxHeight);
+    chatInput.style.height = `${nextHeight}px`;
+    chatInput.classList.toggle("has-overflow", chatInput.scrollHeight > maxHeight + 1);
+}
+
 /**
  * Initialize page functionality on DOM load.
  */
@@ -56,7 +67,13 @@ document.addEventListener("DOMContentLoaded", function () {
     // Set up reset sort button
     const resetSortBtn = document.getElementById("reset-sort-btn");
     if (resetSortBtn) {
+        resetSortBtn.innerHTML = `<span class="icon-btn">${renderIcon("arrow-up-wide-narrow")}</span>`;
         resetSortBtn.addEventListener("click", resetTableSort);
+    }
+
+    const promptOptionsIcon = document.getElementById("prompt-options-icon");
+    if (promptOptionsIcon) {
+        promptOptionsIcon.innerHTML = renderIcon("settings");
     }
 
     // Set up chat functionality
@@ -67,6 +84,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const chatInput = document.getElementById("chat-input");
     if (chatInput) {
+        autoResizeChatInput();
+        chatInput.addEventListener("input", autoResizeChatInput);
         chatInput.addEventListener("keypress", (e) => {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
