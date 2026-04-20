@@ -3,6 +3,83 @@
  * @description Handles models list, running models, and model operations.
  */
 
+function renderCopyableModelName(modelName) {
+    const escapedName = escapeHtml(modelName);
+    const escapedAttribute = escapedName.replace(/"/g, "&quot;");
+
+    return `
+        <button type="button"
+                class="btn btn-link btn-sm model-name-button"
+                data-model-name="${escapedAttribute}"
+                title="Copy model name"
+                aria-label="Copy model name ${escapedAttribute}">
+            <span class="model-name-label">${escapedName}</span>
+        </button>
+    `;
+}
+
+async function copyModelName(modelName) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(modelName);
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = modelName;
+            textArea.setAttribute("readonly", "");
+            textArea.style.position = "absolute";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textArea);
+        }
+    } catch (error) {
+        console.error("Failed to copy model name:", error);
+        showNotification(`Could not copy "${modelName}"`, "danger");
+    }
+}
+
+function showCopiedState(button) {
+    const label = button.querySelector(".model-name-label");
+    if (!label) return;
+
+    const originalLabel = button.dataset.modelName || label.textContent || "";
+    const existingTimeout = button.dataset.copiedTimeoutId;
+    if (existingTimeout) {
+        window.clearTimeout(Number(existingTimeout));
+    }
+
+    label.textContent = "Copied!";
+    label.classList.add("is-copied");
+    const timeoutId = window.setTimeout(() => {
+        label.textContent = originalLabel;
+        label.classList.remove("is-copied");
+        delete button.dataset.copiedTimeoutId;
+    }, 1200);
+
+    button.dataset.copiedTimeoutId = String(timeoutId);
+}
+
+function initializeModelNameCopyHandlers() {
+    const containerIds = ["models-list", "running-models-list"];
+
+    containerIds.forEach((containerId) => {
+        const container = document.getElementById(containerId);
+        if (!container || container.dataset.copyHandlerBound === "true") return;
+
+        container.addEventListener("click", (event) => {
+            const button = event.target.closest(".model-name-button");
+            if (!button) return;
+
+            event.preventDefault();
+            copyModelName(button.dataset.modelName || "");
+            showCopiedState(button);
+        });
+
+        container.dataset.copyHandlerBound = "true";
+    });
+}
+
 /**
  * Load and display running models on the dashboard.
  */
@@ -38,7 +115,7 @@ async function loadRunningModels() {
             return `
         <div class="running-model-item">
             <div>
-                <span class="fw-medium">${model.name}</span>
+                ${renderCopyableModelName(model.name)}
                 <small class="text-muted ms-2">${params} | ${quant}</small>
             </div>
             <div class="running-model-meta">
@@ -139,7 +216,7 @@ async function loadModelsList() {
 
             return `
         <tr>
-            <td data-sort="${model.name.toLowerCase()}">${model.name}</td>
+            <td data-sort="${model.name.toLowerCase()}" class="model-name-cell">${renderCopyableModelName(model.name)}</td>
             <td data-sort="${sizeBytes}">${sizeDisplay}</td>
             <td data-sort="${params.toLowerCase()}">${params}</td>
             <td data-sort="${format.toLowerCase()}">${format}</td>

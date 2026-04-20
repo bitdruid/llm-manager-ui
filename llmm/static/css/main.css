@@ -60,6 +60,13 @@ main {
     box-shadow: none;
 }
 
+.model-name-button:hover:not(:disabled):not(.disabled),
+.model-name-button:focus-visible:not(:disabled):not(.disabled) {
+    z-index: auto;
+    transform: none;
+    box-shadow: none;
+}
+
 .nav-tabs .nav-link:hover:not(.active),
 .nav-tabs .nav-link:focus-visible:not(.active) {
     color: var(--bs-emphasis-color);
@@ -104,6 +111,40 @@ main {
 
 .model-name-cell {
     font-weight: 500;
+}
+
+.model-name-button {
+    --bs-btn-padding-y: 0;
+    --bs-btn-padding-x: 0;
+    --bs-btn-font-size: inherit;
+    --bs-btn-font-weight: 500;
+    --bs-btn-line-height: inherit;
+    --bs-btn-color: var(--bs-body-color);
+    --bs-btn-hover-color: var(--bs-body-color);
+    --bs-btn-active-color: var(--bs-body-color);
+    --bs-btn-bg: transparent;
+    --bs-btn-hover-bg: transparent;
+    --bs-btn-active-bg: transparent;
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-border-color: transparent;
+    text-decoration: none;
+    vertical-align: baseline;
+    cursor: pointer;
+    border: 0;
+    box-shadow: none;
+    transform: none;
+}
+
+.model-name-button:hover,
+.model-name-button:focus-visible {
+    text-decoration: none;
+    box-shadow: none;
+    transform: none;
+}
+
+.model-name-label.is-copied {
+    font-style: italic;
 }
 
 .status-badge {

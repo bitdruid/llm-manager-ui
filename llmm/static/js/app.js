@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Load all dashboard data
     console.log("Loading dashboard data");
+    initializeModelNameCopyHandlers();
     loadRunningModels();
     loadTotalModels();
     loadTotalStorage();
