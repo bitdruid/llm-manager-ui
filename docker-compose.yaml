@@ -4,10 +4,16 @@ services:
     image: llm-manager-ui:latest
     build:
       context: .
+      secrets:
+        - pip_conf
     ports:
       - "5000:5000"
     environment:
       - OLLAMA_URL=http://localhost:11434
       - "BASE_PATH="
-      - "LOG_LEVEL=INFO"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+      - "LOG_LEVEL=INFO" # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
     restart: unless-stopped
+
+secrets:
+  pip_conf:
+    file: /etc/pip.conf

@@ -4,7 +4,12 @@ COPY llmm /llmm/llmm
 COPY pyproject.toml /llmm/pyproject.toml
 COPY requirements.txt /llmm/requirements.txt
 
-RUN pip install /llmm
+RUN --mount=type=secret,id=pip_conf,target=/etc/pip.conf \
+    if [ -f /etc/pip.conf ]; then \
+    PIP_CONFIG_FILE=/etc/pip.conf pip install /llmm; \
+    else \
+    pip install /llmm; \
+    fi
 
 WORKDIR /llmm/llmm
 
