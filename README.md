@@ -39,6 +39,8 @@ docker-compose up -d --build
 ```
 - Change ENV in `docker-compose.yaml` if needed.
 - `OLLAMA_URL` - URL of the Ollama server (default: `http://localhost:11434`)
+- `FIXED_MODELS` - Comma-separated models that should be pulled automatically when missing (default: empty)
+  - Example: `llama3.2,mistral`
 - `LOG_LEVEL` - Logging verbosity (default: `INFO`)
   - Options: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
   - `INFO` recommended for production (shows important operations without noise)

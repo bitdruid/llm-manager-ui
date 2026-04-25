@@ -12,6 +12,7 @@ services:
       - OLLAMA_URL=http://localhost:11434
       - "BASE_PATH="
       - "LOG_LEVEL=INFO" # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+      - "FIXED_MODELS=" # Comma-separated list, e.g. llama3.2,mistral
     restart: unless-stopped
 
 secrets:

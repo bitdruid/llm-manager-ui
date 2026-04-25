@@ -4,6 +4,8 @@ import os
 import logging
 import logging.handlers
 
+from llmm.env import env
+
 
 class Log:
     """Application logger with console and rotating file output."""
@@ -12,9 +14,7 @@ class Log:
         """Initialize the logger instance."""
         self.log = logging.getLogger("llmm_log")
 
-        # Get log level from environment variable, default to INFO
-        log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-        level = getattr(logging, log_level, logging.INFO)
+        level = getattr(logging, env.log_level, logging.INFO)
         self.log.setLevel(level)
 
     def init_llmm(self, instance_path: str):

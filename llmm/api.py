@@ -43,6 +43,9 @@ async def pull_model(data: dict[str, Any]):
 @api.delete("/models/{model_name:path}")
 async def delete_model(model_name: str):
     """Delete a model"""
+    if ollama_service.is_fixed_model(model_name):
+        return {"status": "error", "message": f"Model {model_name} is configured in FIXED_MODELS"}
+
     logger.info(f"Deleting model: {model_name}")
     return await ollama_service.delete_model(model_name)
 

@@ -1,21 +1,8 @@
 """Configuration settings for the LLM Manager application."""
 
-import os
 from importlib.metadata import metadata
 
-
-def get_base_path() -> str:
-    """
-    Get the base path for the application from environment variable.
-    """
-    base_path = os.environ.get("BASE_PATH", "").strip()
-
-    if base_path:
-        if not base_path.startswith("/"):
-            base_path = "/" + base_path
-        base_path = base_path.rstrip("/")
-
-    return base_path
+from llmm.env import env
 
 
 def get_project_config() -> dict:
@@ -47,8 +34,9 @@ def get_project_config() -> dict:
 
 cfg = get_project_config()
 
-BASE_PATH = get_base_path()
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+BASE_PATH = env.base_path
+FIXED_MODELS = env.fixed_models
+OLLAMA_URL = env.ollama_url
 
 VERSION = cfg["version"]
 AUTHOR = cfg["author"]

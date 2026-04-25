@@ -1,10 +1,10 @@
 """Ollama API service for model management."""
 
-import os
 from typing import Any
 
 import httpx
 
+from llmm.env import env
 from llmm.extensions import logger
 
 
@@ -16,8 +16,9 @@ class OllamaService:
 
     def __init__(self):
         """Initialize the service with Ollama URL from environment."""
-        self.base_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+        self.base_url = env.ollama_url
         self.timeout = 300.0
+        self.fixed_models = env.fixed_models
 
     async def list_models(self) -> dict[str, Any]:
         """List all available models.
@@ -33,6 +34,44 @@ class OllamaService:
         except Exception as e:
             logger.error(f"Error listing models: {e}")
             return {"models": [], "error": str(e)}
+
+    async def ensure_fixed_models(self) -> None:
+        """Pull configured fixed models when they are not installed."""
+        if not self.fixed_models:
+            return
+
+        installed_response = await self.list_models()
+        if installed_response.get("error"):
+            logger.error(f"Skipping fixed model checks: {installed_response['error']}")
+            return
+
+        installed_models = {
+            self._normalize_model_name(model.get("name", ""))
+            for model in installed_response.get("models", [])
+            if model.get("name")
+        }
+
+        for model_name in self.fixed_models:
+            normalized_model_name = self._normalize_model_name(model_name)
+            if normalized_model_name in installed_models:
+                logger.info(f"Fixed model already installed: {model_name}")
+                continue
+
+            logger.info(f"Pulling missing fixed model: {model_name}")
+            async for line in self.pull_model_stream(model_name):
+                logger.debug(f"Fixed model pull progress for {model_name}: {line}")
+            installed_models.add(normalized_model_name)
+
+    def is_fixed_model(self, model_name: str) -> bool:
+        normalized_name = self._normalize_model_name(model_name)
+        return any(self._normalize_model_name(model) == normalized_name for model in self.fixed_models)
+
+    @staticmethod
+    def _normalize_model_name(model_name: str) -> str:
+        model_name = model_name.strip()
+        if model_name and ":" not in model_name:
+            return f"{model_name}:latest"
+        return model_name
 
     async def get_running_models(self) -> dict[str, Any]:
         """Get currently running models.
