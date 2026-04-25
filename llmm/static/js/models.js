@@ -3,6 +3,22 @@
  * @description Handles models list, running models, and model operations.
  */
 
+let fixedModels = [];
+let fixedModelsLoaded = false;
+
+function normalizeModelName(modelName) {
+    const trimmedName = String(modelName || "").trim();
+    if (trimmedName && !trimmedName.includes(":")) {
+        return `${trimmedName}:latest`;
+    }
+    return trimmedName;
+}
+
+function isFixedModel(modelName) {
+    const normalizedName = normalizeModelName(modelName);
+    return fixedModels.some((fixedModel) => normalizeModelName(fixedModel) === normalizedName);
+}
+
 function renderCopyableModelName(modelName) {
     const escapedName = escapeHtml(modelName);
     const escapedAttribute = escapedName.replace(/"/g, "&quot;");
@@ -61,7 +77,7 @@ function showCopiedState(button) {
 }
 
 function initializeModelNameCopyHandlers() {
-    const containerIds = ["models-list", "running-models-list"];
+    const containerIds = ["models-list", "running-models-list", "fixed-models-list"];
 
     containerIds.forEach((containerId) => {
         const container = document.getElementById(containerId);
@@ -78,6 +94,41 @@ function initializeModelNameCopyHandlers() {
 
         container.dataset.copyHandlerBound = "true";
     });
+}
+
+async function loadFixedModels() {
+    const card = document.getElementById("fixed-models-card");
+    const container = document.getElementById("fixed-models-list");
+    if (!card || !container) return;
+
+    const data = await fetchAPI("/models/fixed");
+
+    if (data.error) {
+        fixedModels = [];
+        fixedModelsLoaded = true;
+        card.classList.remove("d-none");
+        container.innerHTML = `<div class="alert alert-danger py-1">Error: ${data.error}</div>`;
+        return;
+    }
+
+    fixedModels = data.models || [];
+    fixedModelsLoaded = true;
+    if (fixedModels.length === 0) {
+        card.classList.add("d-none");
+        container.innerHTML = "";
+        return;
+    }
+
+    card.classList.remove("d-none");
+    container.innerHTML = fixedModels
+        .map((modelName) => {
+            return `
+                <div class="fixed-model-item">
+                    ${renderCopyableModelName(modelName)}
+                </div>
+            `;
+        })
+        .join("");
 }
 
 /**
@@ -192,6 +243,10 @@ async function loadModelsList() {
 
     container.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">Loading...</td></tr>';
 
+    if (!fixedModelsLoaded) {
+        await loadFixedModels();
+    }
+
     const data = await fetchAPI("/models");
 
     if (data.error) {
@@ -213,6 +268,12 @@ async function loadModelsList() {
             // Ensure size is a number, default to 0 if not available
             const sizeBytes = parseInt(model.size) || 0;
             const sizeDisplay = sizeBytes > 0 ? formatBytes(sizeBytes) : "-";
+            const fixedModel = isFixedModel(model.name);
+            const deleteDisabled = fixedModel ? "disabled" : "";
+            const deleteTitle = fixedModel ? "Fixed models cannot be deleted" : "Delete model";
+            const deleteAriaLabel = fixedModel
+                ? `Fixed model ${model.name} cannot be deleted`
+                : `Delete model ${model.name}`;
 
             return `
         <tr>
@@ -238,8 +299,9 @@ async function loadModelsList() {
                     </button>
                     <button class="btn btn-sm btn-danger py-0 px-2 icon-only-btn"
                             onclick="deleteModel('${model.name}')"
-                            title="Delete model"
-                            aria-label="Delete model ${model.name}">
+                            title="${deleteTitle}"
+                            aria-label="${deleteAriaLabel}"
+                            ${deleteDisabled}>
                         <span class="icon-btn">${renderIcon("x")}</span>
                     </button>
                 </div>

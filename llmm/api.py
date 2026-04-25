@@ -25,6 +25,12 @@ async def get_running_models():
     return await ollama_service.get_running_models()
 
 
+@api.get("/models/fixed")
+async def get_fixed_models():
+    """Get configured fixed models"""
+    return {"models": ollama_service.fixed_models}
+
+
 @api.post("/models/pull")
 async def pull_model(data: dict[str, Any]):
     """Pull a new model with streaming progress"""

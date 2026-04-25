@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
     loadRunningModels();
     loadTotalModels();
     loadTotalStorage();
-    loadModelsList();
+    loadFixedModels().then(loadModelsList);
     loadChatModelSelect();
 
     // Set up refresh intervals
@@ -109,7 +109,7 @@ if (typeof socket !== "undefined") {
 
     socket.on("model_update", function (data) {
         console.log("Model update received:", data);
-        loadModelsList();
+        loadFixedModels().then(loadModelsList);
         loadRunningModels();
         loadTotalModels();
         loadTotalStorage();

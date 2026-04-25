@@ -194,6 +194,15 @@ footer {
     justify-content: center;
 }
 
+.fixed-model-item {
+    padding: 0.375rem 0;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.fixed-model-item:last-child {
+    border-bottom: none;
+}
+
 #theme-toggle {
     border: none;
     padding: 0.25rem 0.5rem;
