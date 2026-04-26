@@ -26,6 +26,7 @@ bash start.sh [options]
 Options:
 - `-h, --host HOST` - Ollama server host (default: localhost)
 - `-p, --port PORT` - Ollama server port (default: 11434)
+- `-b, --base-path PATH` - Public base path when hosting under a subdirectory (example: `/subdir1/app`)
 - `--help` - Show help message
 
 The script will:
@@ -39,6 +40,7 @@ docker-compose up -d --build
 ```
 - Change ENV in `docker-compose.yaml` if needed.
 - `OLLAMA_URL` - URL of the Ollama server (default: `http://localhost:11434`)
+- `BASE_PATH` - Public base path when hosting under a subdirectory (example: `/subdir1/app` for `http://example.com/subdir1/app`)
 - `FIXED_MODELS` - Comma-separated models that should be pulled automatically when missing (default: empty)
   - Example: `llama3.2,mistral`
 - `LOG_LEVEL` - Logging verbosity (default: `INFO`)
@@ -47,6 +49,19 @@ docker-compose up -d --build
   - `DEBUG` for troubleshooting (shows all operations including frequent fetches)
 
 **Access the UI** at `http://localhost:5000`
+
+### Reverse proxy subpath
+
+When the UI is published below a subpath, set `BASE_PATH` to the full public path:
+
+```yaml
+environment:
+  - "BASE_PATH=/exampledir/app"
+```
+
+Don't forget to include for the location:
+- proxy settings
+- http connection upgrade for socket
 
 ## Contribution
 

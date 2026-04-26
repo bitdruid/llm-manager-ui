@@ -354,7 +354,7 @@ async function pullModel() {
     const progressPercent = document.getElementById("pull-progress-percent");
 
     try {
-        const response = await fetch(`/api/models/pull`, {
+        const response = await fetch(withBasePath("/api/models/pull"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name: modelName }),
@@ -519,7 +519,7 @@ async function updateModel(modelName) {
     const progressPercent = document.getElementById(`update-progress-percent-${safeModelName}`);
 
     try {
-        const response = await fetch(`/api/models/update`, {
+        const response = await fetch(withBasePath("/api/models/update"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name: modelName }),

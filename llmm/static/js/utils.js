@@ -5,6 +5,16 @@
 
 // Initialize markdown-it with highlight.js
 let md;
+const APP_BASE_PATH = (window.LLMM_BASE_PATH || "").replace(/\/$/, "");
+
+function withBasePath(path = "") {
+    if (!path) {
+        return APP_BASE_PATH || "/";
+    }
+
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+    return `${APP_BASE_PATH}${normalizedPath}`;
+}
 
 function initializeMarkdown() {
     if (typeof markdownit !== "undefined" && typeof hljs !== "undefined") {
@@ -80,7 +90,7 @@ function toggleTheme() {
  */
 async function fetchAPI(endpoint, options = {}) {
     try {
-        const response = await fetch(`/api${endpoint}`, {
+        const response = await fetch(withBasePath(`/api${endpoint}`), {
             headers: {
                 "Content-Type": "application/json",
             },

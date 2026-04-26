@@ -18,7 +18,7 @@ async function chat({ model, messages, options = {}, think = false }) {
         body.think = true;
     }
 
-    return fetch("/api/chat", {
+    return fetch(withBasePath("/api/chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -34,7 +34,7 @@ async function chat({ model, messages, options = {}, think = false }) {
  * @returns {Promise<Response>} Fetch response.
  */
 async function generate({ model, prompt, options = {} }) {
-    return fetch("/api/generate", {
+    return fetch(withBasePath("/api/generate"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model, prompt, options }),

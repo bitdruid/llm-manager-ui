@@ -30,6 +30,10 @@ file = "requirements.txt"
 
 [tool.hatch.build.targets.wheel]
 packages = ["llmm"]
+artifacts = [
+    "llmm/static/**",
+    "llmm/templates/**",
+]
 
 
 [tool.djlint]
