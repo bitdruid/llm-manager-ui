@@ -1,0 +1,578 @@
+/**
+ * LLM Manager UI - Models Tab
+ * @description Handles models list, running models, and model operations.
+ */
+
+let fixedModels = [];
+let fixedModelsLoaded = false;
+
+function normalizeModelName(modelName) {
+    const trimmedName = String(modelName || "").trim();
+    if (trimmedName && !trimmedName.includes(":")) {
+        return `${trimmedName}:latest`;
+    }
+    return trimmedName;
+}
+
+function isFixedModel(modelName) {
+    const normalizedName = normalizeModelName(modelName);
+    return fixedModels.some((fixedModel) => normalizeModelName(fixedModel) === normalizedName);
+}
+
+function renderCopyableModelName(modelName) {
+    const escapedName = escapeHtml(modelName);
+    const escapedAttribute = escapedName.replace(/"/g, "&quot;");
+
+    return `
+        <button type="button"
+                class="btn btn-link btn-sm model-name-button"
+                data-model-name="${escapedAttribute}"
+                title="Copy model name"
+                aria-label="Copy model name ${escapedAttribute}">
+            <span class="model-name-label">${escapedName}</span>
+        </button>
+    `;
+}
+
+async function copyModelName(modelName) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(modelName);
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = modelName;
+            textArea.setAttribute("readonly", "");
+            textArea.style.position = "absolute";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textArea);
+        }
+    } catch (error) {
+        console.error("Failed to copy model name:", error);
+        showNotification(`Could not copy "${modelName}"`, "danger");
+    }
+}
+
+function showCopiedState(button) {
+    const label = button.querySelector(".model-name-label");
+    if (!label) return;
+
+    const originalLabel = button.dataset.modelName || label.textContent || "";
+    const existingTimeout = button.dataset.copiedTimeoutId;
+    if (existingTimeout) {
+        window.clearTimeout(Number(existingTimeout));
+    }
+
+    label.textContent = "Copied!";
+    label.classList.add("is-copied");
+    const timeoutId = window.setTimeout(() => {
+        label.textContent = originalLabel;
+        label.classList.remove("is-copied");
+        delete button.dataset.copiedTimeoutId;
+    }, 1200);
+
+    button.dataset.copiedTimeoutId = String(timeoutId);
+}
+
+function initializeModelNameCopyHandlers() {
+    const containerIds = ["models-list", "running-models-list", "fixed-models-list"];
+
+    containerIds.forEach((containerId) => {
+        const container = document.getElementById(containerId);
+        if (!container || container.dataset.copyHandlerBound === "true") return;
+
+        container.addEventListener("click", (event) => {
+            const button = event.target.closest(".model-name-button");
+            if (!button) return;
+
+            event.preventDefault();
+            copyModelName(button.dataset.modelName || "");
+            showCopiedState(button);
+        });
+
+        container.dataset.copyHandlerBound = "true";
+    });
+}
+
+async function loadFixedModels() {
+    const card = document.getElementById("fixed-models-card");
+    const container = document.getElementById("fixed-models-list");
+    if (!card || !container) return;
+
+    const data = await fetchAPI("/models/fixed");
+
+    if (data.error) {
+        fixedModels = [];
+        fixedModelsLoaded = true;
+        card.classList.remove("d-none");
+        container.innerHTML = `<div class="alert alert-danger py-1">Error: ${data.error}</div>`;
+        return;
+    }
+
+    fixedModels = data.models || [];
+    fixedModelsLoaded = true;
+    if (fixedModels.length === 0) {
+        card.classList.add("d-none");
+        container.innerHTML = "";
+        return;
+    }
+
+    card.classList.remove("d-none");
+    container.innerHTML = fixedModels
+        .map((modelName) => {
+            return `
+                <div class="fixed-model-item">
+                    ${renderCopyableModelName(modelName)}
+                </div>
+            `;
+        })
+        .join("");
+}
+
+/**
+ * Load and display running models on the dashboard.
+ */
+async function loadRunningModels() {
+    const container = document.getElementById("running-models-list");
+    if (!container) return;
+
+    const data = await fetchAPI("/models/running");
+
+    if (data.error) {
+        const markup = `<div class="alert alert-danger py-1">Error: ${data.error}</div>`;
+        if (container.dataset.lastRenderedMarkup !== markup) {
+            container.innerHTML = markup;
+            container.dataset.lastRenderedMarkup = markup;
+        }
+        return;
+    }
+
+    if (!data.models || data.models.length === 0) {
+        const markup = '<p class="text-muted mb-0">No models running</p>';
+        if (container.dataset.lastRenderedMarkup !== markup) {
+            container.innerHTML = markup;
+            container.dataset.lastRenderedMarkup = markup;
+        }
+        return;
+    }
+
+    const markup = data.models
+        .map((model) => {
+            const details = model.details || {};
+            const params = details.parameter_size || "-";
+            const quant = details.quantization_level || "-";
+            return `
+        <div class="running-model-item">
+            <div>
+                ${renderCopyableModelName(model.name)}
+                <small class="text-muted ms-2">${params} | ${quant}</small>
+            </div>
+            <div class="running-model-meta">
+                <span class="badge bg-success status-badge">${model.size ? formatBytes(model.size) : "Active"}</span>
+                <button class="btn btn-sm btn-warning py-0 px-2 icon-only-btn"
+                        type="button"
+                        onclick="unloadModel('${model.name}')"
+                        title="Unload model"
+                        aria-label="Unload model ${model.name}">
+                    <span class="icon-btn">${renderIcon("upload")}</span>
+                </button>
+            </div>
+        </div>
+    `;
+        })
+        .join("");
+
+    if (container.dataset.lastRenderedMarkup !== markup) {
+        container.innerHTML = markup;
+        container.dataset.lastRenderedMarkup = markup;
+    }
+}
+
+/**
+ * Load and display total models count on the dashboard.
+ */
+async function loadTotalModels() {
+    const container = document.getElementById("total-models");
+    if (!container) return;
+
+    const data = await fetchAPI("/models");
+
+    if (data.error) {
+        container.innerHTML = `<div class="alert alert-danger py-1">Error: ${data.error}</div>`;
+        return;
+    }
+
+    const count = data.models ? data.models.length : 0;
+    container.innerHTML = `
+        <h3 class="mb-0">${count}</h3>
+        <small class="text-muted">models installed</small>
+    `;
+
+    return data;
+}
+
+/**
+ * Load and display total storage used by models.
+ */
+async function loadTotalStorage() {
+    const container = document.getElementById("total-storage");
+    if (!container) return;
+
+    const data = await fetchAPI("/models");
+
+    if (data.error) {
+        container.innerHTML = `<div class="alert alert-danger py-1">Error: ${data.error}</div>`;
+        return;
+    }
+
+    const totalBytes = data.models ? data.models.reduce((sum, model) => sum + (model.size || 0), 0) : 0;
+    container.innerHTML = `
+        <h3 class="mb-0">${formatBytes(totalBytes)}</h3>
+        <small class="text-muted">total disk usage</small>
+    `;
+}
+
+/**
+ * Load and display the models list table.
+ */
+async function loadModelsList() {
+    const container = document.getElementById("models-list");
+    if (!container) return;
+
+    container.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">Loading...</td></tr>';
+
+    if (!fixedModelsLoaded) {
+        await loadFixedModels();
+    }
+
+    const data = await fetchAPI("/models");
+
+    if (data.error) {
+        container.innerHTML = `<tr><td colspan="6" class="text-center py-3"><div class="alert alert-danger mb-0">Error: ${data.error}</div></td></tr>`;
+        return;
+    }
+
+    if (!data.models || data.models.length === 0) {
+        container.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">No models installed</td></tr>';
+        return;
+    }
+
+    container.innerHTML = data.models
+        .map((model) => {
+            const details = model.details || {};
+            const params = details.parameter_size || "-";
+            const format = details.format || "-";
+            const quant = details.quantization_level || "-";
+            // Ensure size is a number, default to 0 if not available
+            const sizeBytes = parseInt(model.size) || 0;
+            const sizeDisplay = sizeBytes > 0 ? formatBytes(sizeBytes) : "-";
+            const fixedModel = isFixedModel(model.name);
+            const deleteDisabled = fixedModel ? "disabled" : "";
+            const deleteTitle = fixedModel ? "Fixed models cannot be deleted" : "Delete model";
+            const deleteAriaLabel = fixedModel
+                ? `Fixed model ${model.name} cannot be deleted`
+                : `Delete model ${model.name}`;
+
+            return `
+        <tr>
+            <td data-sort="${model.name.toLowerCase()}" class="model-name-cell">${renderCopyableModelName(model.name)}</td>
+            <td data-sort="${sizeBytes}">${sizeDisplay}</td>
+            <td data-sort="${params.toLowerCase()}">${params}</td>
+            <td data-sort="${format.toLowerCase()}">${format}</td>
+            <td data-sort="${quant.toLowerCase()}">${quant}</td>
+            <td class="no-sort">
+                <div class="d-flex gap-1 justify-content-end align-items-center">
+                    <button class="btn btn-sm btn-primary py-0 px-2 update-btn icon-only-btn"
+                            onclick="updateModel('${model.name}')"
+                            title="Update model"
+                            aria-label="Update model ${model.name}"
+                            data-model="${model.name}">
+                        <span class="icon-btn">${renderIcon("rotate-cw")}</span>
+                    </button>
+                    <button class="btn btn-sm btn-danger py-0 px-2 icon-only-btn"
+                            onclick="deleteModel('${model.name}')"
+                            title="${deleteTitle}"
+                            aria-label="${deleteAriaLabel}"
+                            ${deleteDisabled}>
+                        <span class="icon-btn">${renderIcon("x")}</span>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+        })
+        .join("");
+
+    // Trigger a custom event to indicate table content has been updated
+    const table = document.getElementById("models-table");
+    if (table) {
+        table.dispatchEvent(new Event("content-loaded"));
+    }
+}
+
+/**
+ * Pull a new model with streaming progress display.
+ */
+async function pullModel() {
+    const input = document.getElementById("model-name-input");
+    const statusRow = document.getElementById("pull-status");
+    const statusCell = document.getElementById("pull-status-cell");
+    const btn = document.getElementById("pull-model-btn");
+
+    const modelName = input.value.trim();
+
+    if (!modelName) {
+        showNotification("Please enter a model name", "warning");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = "Pulling...";
+    statusCell.innerHTML = `
+        <div class="alert alert-primary mb-0 border-0 rounded-0 py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <span id="pull-status-text">Starting pull...</span>
+                <span id="pull-progress-percent"></span>
+            </div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar" id="pull-progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+        </div>
+    `;
+    statusRow.classList.remove("d-none");
+
+    const statusText = document.getElementById("pull-status-text");
+    const progressBar = document.getElementById("pull-progress-bar");
+    const progressPercent = document.getElementById("pull-progress-percent");
+
+    try {
+        const response = await fetch(withBasePath("/api/models/pull"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: modelName }),
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let lastStatus = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const text = decoder.decode(value);
+            const lines = text.split("\n");
+
+            for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+
+                        if (data.error) {
+                            showNotification(`Error: ${data.error}`, "danger");
+                            btn.disabled = false;
+                            btn.innerHTML = "Pull";
+                            return;
+                        }
+
+                        if (data.status) {
+                            lastStatus = data.status;
+                            if (statusText) statusText.textContent = data.status;
+                        }
+
+                        if (data.total && data.completed !== undefined) {
+                            const percent = Math.round((data.completed / data.total) * 100);
+                            const completedStr = formatBytes(data.completed);
+                            const totalStr = formatBytes(data.total);
+                            if (progressBar) progressBar.style.width = percent + "%";
+                            if (progressPercent)
+                                progressPercent.textContent = `${completedStr} / ${totalStr} (${percent}%)`;
+                        }
+                    } catch (e) {}
+                }
+            }
+        }
+
+        showNotification(`Model "${modelName}" pulled successfully!`, "success");
+        input.value = "";
+        loadModelsList();
+    } catch (error) {
+        showNotification(`Error: ${error.message}`, "danger");
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = "Pull";
+}
+
+/**
+ * Delete a model after confirmation.
+ * @param {string} modelName - Name of the model to delete.
+ */
+async function deleteModel(modelName) {
+    if (!confirm(`Are you sure you want to delete ${modelName}?`)) {
+        return;
+    }
+
+    const result = await fetchAPI(`/models/${encodeURIComponent(modelName)}`, {
+        method: "DELETE",
+    });
+
+    if (result.status === "success") {
+        showNotification(`Model "${modelName}" deleted successfully!`, "success");
+        loadModelsList();
+    } else {
+        showNotification(`Error deleting model: ${result.message}`, "danger");
+    }
+}
+
+/**
+ * Unload a running model from memory.
+ * @param {string} modelName - Name of the model to unload.
+ */
+async function unloadModel(modelName) {
+    if (!confirm(`Unload ${modelName} from memory?`)) {
+        return;
+    }
+
+    const result = await fetchAPI(`/models/${encodeURIComponent(modelName)}/unload`, {
+        method: "POST",
+    });
+
+    if (result.status === "success") {
+        showNotification(`Model "${modelName}" unloaded successfully!`, "success");
+        loadRunningModels();
+    } else {
+        showNotification(`Error unloading model: ${result.message}`, "danger");
+    }
+}
+
+/**
+ * Update a model with streaming progress display.
+ * @param {string} modelName - Name of the model to update.
+ */
+async function updateModel(modelName) {
+    if (!confirm(`Update ${modelName}?\n\nThis will download the latest version if available.`)) {
+        return;
+    }
+
+    // Find the update button for this model
+    const updateBtn = document.querySelector(`.update-btn[data-model="${modelName}"]`);
+    if (updateBtn) {
+        updateBtn.disabled = true;
+        updateBtn.classList.add("spinning");
+    }
+
+    // Create a temporary status area
+    const container = document.getElementById("models-list");
+    const statusRow = document.createElement("tr");
+    statusRow.id = `update-status-${modelName.replace(/[^a-zA-Z0-9]/g, "-")}`;
+    statusRow.innerHTML = `
+        <td colspan="6" class="py-2">
+            <div class="alert alert-primary mb-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span id="update-status-text-${modelName.replace(/[^a-zA-Z0-9]/g, "-")}">Updating ${modelName}...</span>
+                    <span id="update-progress-percent-${modelName.replace(/[^a-zA-Z0-9]/g, "-")}"></span>
+                </div>
+                <div class="progress mt-2" style="height: 6px;">
+                    <div class="progress-bar" id="update-progress-bar-${modelName.replace(/[^a-zA-Z0-9]/g, "-")}" role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+        </td>
+    `;
+
+    // Insert status row after the model row
+    const modelRow = updateBtn?.closest("tr");
+    if (modelRow && modelRow.nextSibling) {
+        modelRow.parentNode.insertBefore(statusRow, modelRow.nextSibling);
+    } else if (modelRow) {
+        modelRow.parentNode.appendChild(statusRow);
+    }
+
+    const safeModelName = modelName.replace(/[^a-zA-Z0-9]/g, "-");
+    const statusText = document.getElementById(`update-status-text-${safeModelName}`);
+    const progressBar = document.getElementById(`update-progress-bar-${safeModelName}`);
+    const progressPercent = document.getElementById(`update-progress-percent-${safeModelName}`);
+
+    try {
+        const response = await fetch(withBasePath("/api/models/update"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: modelName }),
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let lastStatus = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const text = decoder.decode(value);
+            const lines = text.split("\n");
+
+            for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+
+                        if (data.error) {
+                            showNotification(`Error updating ${modelName}: ${data.error}`, "danger");
+                            statusRow.remove();
+                            if (updateBtn) {
+                                updateBtn.disabled = false;
+                                updateBtn.classList.remove("spinning");
+                            }
+                            return;
+                        }
+
+                        if (data.status) {
+                            lastStatus = data.status;
+                            if (statusText) statusText.textContent = `${modelName}: ${data.status}`;
+                        }
+
+                        if (data.total && data.completed !== undefined) {
+                            const percent = Math.round((data.completed / data.total) * 100);
+                            const completedStr = formatBytes(data.completed);
+                            const totalStr = formatBytes(data.total);
+                            if (progressBar) progressBar.style.width = percent + "%";
+                            if (progressPercent)
+                                progressPercent.textContent = `${completedStr} / ${totalStr} (${percent}%)`;
+                        }
+                    } catch (e) {}
+                }
+            }
+        }
+
+        showNotification(`Model "${modelName}" updated successfully!`, "success");
+        statusRow.remove();
+
+        // Reload models list to update display
+        loadModelsList();
+    } catch (error) {
+        showNotification(`Error updating model: ${error.message}`, "danger");
+        statusRow.remove();
+    }
+
+    if (updateBtn) {
+        updateBtn.disabled = false;
+        updateBtn.classList.remove("spinning");
+    }
+}
+
+/**
+ * Reset the table sort order to default.
+ */
+function resetTableSort() {
+    const table = document.getElementById("models-table");
+    if (!table) return;
+
+    // Remove all aria-sort attributes from headers
+    const headers = table.querySelectorAll("th[aria-sort]");
+    headers.forEach((th) => th.removeAttribute("aria-sort"));
+
+    // Reload the models list to restore original order
+    loadModelsList();
+}
