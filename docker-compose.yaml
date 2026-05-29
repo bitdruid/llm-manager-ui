@@ -1,15 +1,18 @@
 services:
   llmm:
     container_name: llm-manager-ui
-    image: llm-manager-ui:latest
-    build:
-      context: .
-      dockerfile: dockerfile
+    image: bitdruid/llm-manager-ui:latest
+    # build:
+    #   context: .
+    #   dockerfile: dockerfile
     ports:
-      - "5000:5000"
+      - 5000:5000
     environment:
-      - OLLAMA_URL=http://localhost:11434
-      - "BASE_PATH=" # Public base path, e.g. /subdir1/app
-      - "LOG_LEVEL=INFO" # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
-      - "FIXED_MODELS=" # Comma-separated list, e.g. llama3.2,mistral
+      # Single endpoint, or a comma-separated list of labeled endpoints (Name=URL).
+      # The first entry is the default and the only one where FIXED_MODELS are managed.
+      # e.g. OLLAMA_URL=Dev=http://dev.ollama...,Prod=http://prod.ollama...
+      - OLLAMA_URL=label=http:port
+      - BASE_PATH= # Public base path, e.g. /subdir1/app
+      - LOG_LEVEL=INFO # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+      - FIXED_MODELS= # Comma-separated list, e.g. llama3.2,mistral
     restart: unless-stopped

@@ -34,14 +34,11 @@ document.addEventListener("DOMContentLoaded", function () {
         themeToggle.addEventListener("click", toggleTheme);
     }
 
-    // Load all dashboard data
+    // Load all dashboard data. Resolve the active endpoint first so every
+    // subsequent request carries the correct X-Ollama-Url header.
     console.log("Loading dashboard data");
     initializeModelNameCopyHandlers();
-    loadRunningModels();
-    loadTotalModels();
-    loadTotalStorage();
-    loadFixedModels().then(loadModelsList);
-    loadChatModelSelect();
+    loadEndpoints().then(refreshAllData);
 
     // Set up refresh intervals
     setInterval(() => loadRunningModels(), 3000);

@@ -23,6 +23,7 @@ Web UI to manage Ollama LLM server models
 - Update models (manually via update button)
 - Delete old models
 - Chat / Generate with any model
+- Switch between multiple Ollama endpoints from a dropdown
 
 ### Deploy
 ```bash
@@ -51,7 +52,10 @@ Or build and run with compose:
 docker-compose up -d --build
 ```
 - Change ENV in `docker-compose.yaml` if needed.
-- `OLLAMA_URL` - URL of the Ollama server (default: `http://localhost:11434`)
+- `OLLAMA_URL` - Ollama server URL (default: `http://localhost:11434`). Provide a single URL, or a comma-separated list of `Name=URL` endpoints to switch between them from a dropdown in the header.
+  - Example: `Dev=http://dev.ollama,Prod=http://prod.ollama`
+  - The first entry is the default (badged `[Default]`) and is the only endpoint where `FIXED_MODELS` are managed.
+  - Unlabeled entries fall back to a label derived from the host.
 - `BASE_PATH` - Public base path when hosting under a subdirectory (example: `/subdir1/app` for `http://example.com/subdir1/app`)
 - `FIXED_MODELS` - Comma-separated models that should be pulled automatically when missing (default: empty)
   - Example: `llama3.2,mistral`

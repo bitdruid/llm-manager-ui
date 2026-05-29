@@ -350,7 +350,7 @@ async function pullModel() {
     try {
         const response = await fetch(withBasePath("/api/models/pull"), {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: requestHeaders(),
             body: JSON.stringify({ name: modelName }),
         });
 
@@ -498,7 +498,7 @@ async function updateModel(modelName) {
     try {
         const response = await fetch(withBasePath("/api/models/update"), {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: requestHeaders(),
             body: JSON.stringify({ name: modelName }),
         });
 

@@ -36,7 +36,6 @@ cfg = get_project_config()
 
 BASE_PATH = env.base_path
 FIXED_MODELS = env.fixed_models
-OLLAMA_URL = env.ollama_url
 
 VERSION = cfg["version"]
 AUTHOR = cfg["author"]

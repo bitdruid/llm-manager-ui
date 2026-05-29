@@ -17,6 +17,7 @@ from llmm.api import api
 from llmm.routes import pages
 from llmm.extensions import sio, logger
 from llmm.config import BASE_PATH
+from llmm.services.endpoints import registry
 from llmm.services.ollama import ollama_service
 
 instance_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance")
@@ -25,7 +26,8 @@ os.makedirs(instance_path, exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    fixed_models_task = asyncio.create_task(ollama_service.ensure_fixed_models())
+    # Fixed models are managed only on the default endpoint.
+    fixed_models_task = asyncio.create_task(ollama_service.ensure_fixed_models(registry.default.url))
     try:
         yield
     finally:

@@ -15,32 +15,42 @@ class OllamaService:
     """
 
     def __init__(self):
-        """Initialize the service with Ollama URL from environment."""
-        self.base_url = env.ollama_url
+        """Initialize the stateless service.
+
+        The target Ollama URL is supplied per call so a single instance can
+        serve requests against any configured endpoint.
+        """
         self.timeout = 300.0
         self.fixed_models = env.fixed_models
 
-    async def list_models(self) -> dict[str, Any]:
+    async def list_models(self, base_url: str) -> dict[str, Any]:
         """List all available models.
+
+        Args:
+            base_url: Base URL of the target Ollama endpoint.
 
         Returns:
             Dictionary containing models list or error.
         """
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tags")
+                response = await client.get(f"{base_url}/api/tags")
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
             logger.error(f"Error listing models: {e}")
             return {"models": [], "error": str(e)}
 
-    async def ensure_fixed_models(self) -> None:
-        """Pull configured fixed models when they are not installed."""
+    async def ensure_fixed_models(self, base_url: str) -> None:
+        """Pull configured fixed models when they are not installed.
+
+        Args:
+            base_url: Base URL of the endpoint to manage fixed models on.
+        """
         if not self.fixed_models:
             return
 
-        installed_response = await self.list_models()
+        installed_response = await self.list_models(base_url)
         if installed_response.get("error"):
             logger.error(f"Skipping fixed model checks: {installed_response['error']}")
             return
@@ -58,7 +68,7 @@ class OllamaService:
                 continue
 
             logger.info(f"Pulling missing fixed model: {model_name}")
-            async for line in self.pull_model_stream(model_name):
+            async for line in self.pull_model_stream(base_url, model_name):
                 logger.debug(f"Fixed model pull progress for {model_name}: {line}")
             installed_models.add(normalized_model_name)
 
@@ -73,25 +83,29 @@ class OllamaService:
             return f"{model_name}:latest"
         return model_name
 
-    async def get_running_models(self) -> dict[str, Any]:
+    async def get_running_models(self, base_url: str) -> dict[str, Any]:
         """Get currently running models.
+
+        Args:
+            base_url: Base URL of the target Ollama endpoint.
 
         Returns:
             Dictionary containing running models or error.
         """
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/ps")
+                response = await client.get(f"{base_url}/api/ps")
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
             logger.error(f"Error getting running models: {e}")
             return {"models": [], "error": str(e)}
 
-    async def pull_model_stream(self, model_name: str):
+    async def pull_model_stream(self, base_url: str, model_name: str):
         """Pull a model from Ollama library with streaming progress.
 
         Args:
+            base_url: Base URL of the target Ollama endpoint.
             model_name: Name of the model to pull.
 
         Yields:
@@ -101,7 +115,7 @@ class OllamaService:
             async with httpx.AsyncClient(timeout=None) as client:
                 async with client.stream(
                     "POST",
-                    f"{self.base_url}/api/pull",
+                    f"{base_url}/api/pull",
                     json={"name": model_name},
                 ) as response:
                     response.raise_for_status()
@@ -112,10 +126,11 @@ class OllamaService:
             logger.error(f"Error pulling model {model_name}: {e}")
             yield f'{{"status": "error", "error": "{str(e)}"}}'
 
-    async def delete_model(self, model_name: str) -> dict[str, Any]:
+    async def delete_model(self, base_url: str, model_name: str) -> dict[str, Any]:
         """Delete a model.
 
         Args:
+            base_url: Base URL of the target Ollama endpoint.
             model_name: Name of the model to delete.
 
         Returns:
@@ -125,7 +140,7 @@ class OllamaService:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.request(
                     "DELETE",
-                    f"{self.base_url}/api/delete",
+                    f"{base_url}/api/delete",
                     json={"name": model_name},
                 )
                 response.raise_for_status()
@@ -134,10 +149,11 @@ class OllamaService:
             logger.error(f"Error deleting model {model_name}: {e}")
             return {"status": "error", "message": str(e)}
 
-    async def unload_model(self, model_name: str) -> dict[str, Any]:
+    async def unload_model(self, base_url: str, model_name: str) -> dict[str, Any]:
         """Unload a running model from memory.
 
         Args:
+            base_url: Base URL of the target Ollama endpoint.
             model_name: Name of the model to unload.
 
         Returns:
@@ -146,7 +162,7 @@ class OllamaService:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
-                    f"{self.base_url}/api/generate",
+                    f"{base_url}/api/generate",
                     json={
                         "model": model_name,
                         "stream": False,
@@ -159,10 +175,11 @@ class OllamaService:
             logger.error(f"Error unloading model {model_name}: {e}")
             return {"status": "error", "message": str(e)}
 
-    async def load_model(self, model_name: str) -> dict[str, Any]:
+    async def load_model(self, base_url: str, model_name: str) -> dict[str, Any]:
         """Load a model into memory.
 
         Args:
+            base_url: Base URL of the target Ollama endpoint.
             model_name: Name of the model to load.
 
         Returns:
@@ -171,7 +188,7 @@ class OllamaService:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
-                    f"{self.base_url}/api/generate",
+                    f"{base_url}/api/generate",
                     json={
                         "model": model_name,
                         "stream": False,
@@ -184,10 +201,11 @@ class OllamaService:
             logger.error(f"Error loading model {model_name}: {e}")
             return {"status": "error", "message": str(e)}
 
-    async def show_model_info(self, model_name: str) -> dict[str, Any]:
+    async def show_model_info(self, base_url: str, model_name: str) -> dict[str, Any]:
         """Get detailed information about a model.
 
         Args:
+            base_url: Base URL of the target Ollama endpoint.
             model_name: Name of the model to inspect.
 
         Returns:
@@ -196,7 +214,7 @@ class OllamaService:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
-                    f"{self.base_url}/api/show",
+                    f"{base_url}/api/show",
                     json={"name": model_name},
                 )
                 response.raise_for_status()
@@ -207,6 +225,7 @@ class OllamaService:
 
     async def chat_stream(
         self,
+        base_url: str,
         model_name: str,
         messages: list[dict[str, str]],
         options: dict[str, Any] | None = None,
@@ -215,6 +234,7 @@ class OllamaService:
         """Send a chat message to a model with streaming response.
 
         Args:
+            base_url: Base URL of the target Ollama endpoint.
             model_name: Name of the model to chat with.
             messages: List of message objects with 'role' and 'content'.
             options: Optional model parameters (temperature, top_k, top_p, etc.)
@@ -236,7 +256,7 @@ class OllamaService:
             async with httpx.AsyncClient(timeout=None) as client:
                 async with client.stream(
                     "POST",
-                    f"{self.base_url}/api/chat",
+                    f"{base_url}/api/chat",
                     json=payload,
                 ) as response:
                     response.raise_for_status()
@@ -249,6 +269,7 @@ class OllamaService:
 
     async def generate_stream(
         self,
+        base_url: str,
         model_name: str,
         prompt: str,
         options: dict[str, Any] | None = None,
@@ -256,6 +277,7 @@ class OllamaService:
         """Generate text from a model with streaming response.
 
         Args:
+            base_url: Base URL of the target Ollama endpoint.
             model_name: Name of the model to use.
             prompt: The prompt to generate from.
             options: Optional model parameters (temperature, top_k, top_p, etc.)
@@ -274,7 +296,7 @@ class OllamaService:
             async with httpx.AsyncClient(timeout=None) as client:
                 async with client.stream(
                     "POST",
-                    f"{self.base_url}/api/generate",
+                    f"{base_url}/api/generate",
                     json=payload,
                 ) as response:
                     response.raise_for_status()

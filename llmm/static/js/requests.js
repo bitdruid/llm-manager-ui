@@ -20,7 +20,7 @@ async function chat({ model, messages, options = {}, think = false }) {
 
     return fetch(withBasePath("/api/chat"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: requestHeaders(),
         body: JSON.stringify(body),
     });
 }
@@ -36,7 +36,7 @@ async function chat({ model, messages, options = {}, think = false }) {
 async function generate({ model, prompt, options = {} }) {
     return fetch(withBasePath("/api/generate"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: requestHeaders(),
         body: JSON.stringify({ model, prompt, options }),
     });
 }

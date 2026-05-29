@@ -6,6 +6,7 @@
 // Initialize markdown-it with highlight.js
 let md;
 const APP_BASE_PATH = (window.LLMM_BASE_PATH || "").replace(/\/$/, "");
+const ENDPOINT_STORAGE_KEY = "ollama_endpoint";
 
 function withBasePath(path = "") {
     if (!path) {
@@ -14,6 +15,40 @@ function withBasePath(path = "") {
 
     const normalizedPath = path.startsWith("/") ? path : `/${path}`;
     return `${APP_BASE_PATH}${normalizedPath}`;
+}
+
+/**
+ * Get the user's currently selected Ollama endpoint URL.
+ * @returns {string} Stored endpoint URL, or "" to use the server default.
+ */
+function getSelectedEndpoint() {
+    return localStorage.getItem(ENDPOINT_STORAGE_KEY) || "";
+}
+
+/**
+ * Persist the selected Ollama endpoint URL.
+ * @param {string} url - Endpoint URL, or falsy to clear the selection.
+ */
+function setSelectedEndpoint(url) {
+    if (url) {
+        localStorage.setItem(ENDPOINT_STORAGE_KEY, url);
+    } else {
+        localStorage.removeItem(ENDPOINT_STORAGE_KEY);
+    }
+}
+
+/**
+ * Build request headers, including the selected Ollama endpoint when set.
+ * @param {Object} [extra] - Additional headers to merge in.
+ * @returns {Object} Header map for fetch().
+ */
+function requestHeaders(extra = {}) {
+    const headers = { "Content-Type": "application/json", ...extra };
+    const endpoint = getSelectedEndpoint();
+    if (endpoint) {
+        headers["X-Ollama-Url"] = endpoint;
+    }
+    return headers;
 }
 
 function initializeMarkdown() {
@@ -91,9 +126,7 @@ function toggleTheme() {
 async function fetchAPI(endpoint, options = {}) {
     try {
         const response = await fetch(withBasePath(`/api${endpoint}`), {
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: requestHeaders(),
             ...options,
         });
         return await response.json();
