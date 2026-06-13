@@ -114,6 +114,15 @@ function renderChatMessages() {
     const container = document.getElementById("chat-messages");
     if (!container) return;
 
+    // Preserve which thinking accordions the user has expanded. The full
+    // innerHTML rebuild below recreates the <details> elements on every
+    // streamed chunk and would otherwise collapse them again immediately.
+    const openThinking = new Set(
+        Array.from(container.querySelectorAll("details[data-thinking-index][open]")).map(
+            (el) => el.dataset.thinkingIndex
+        )
+    );
+
     if (chatMessages.length === 0) {
         container.innerHTML = `
             <div class="text-muted text-center py-4">
@@ -134,7 +143,7 @@ function renderChatMessages() {
             if (msg.thinking) {
                 const thinkingContent = md ? md.render(msg.thinking) : escapeHtml(msg.thinking);
                 const messageContent = md ? md.render(msg.content) : escapeHtml(msg.content);
-                content = `<details class="mb-2"><summary class="text-muted small">Thinking...</summary><div class="small text-muted">${thinkingContent}</div></details>${messageContent}`;
+                content = `<details data-thinking-index="${index}" class="mb-2"><summary class="text-muted small">Thinking...</summary><div class="small text-muted">${thinkingContent}</div></details>${messageContent}`;
             } else {
                 content = md ? md.render(msg.content) : escapeHtml(msg.content);
             }
@@ -152,6 +161,12 @@ function renderChatMessages() {
             `;
         })
         .join("");
+
+    // Re-expand any thinking accordions that were open before the rebuild.
+    openThinking.forEach((idx) => {
+        const el = container.querySelector(`details[data-thinking-index="${idx}"]`);
+        if (el) el.open = true;
+    });
 
     container.scrollTop = container.scrollHeight;
 }

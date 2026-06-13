@@ -165,18 +165,21 @@ function formatDate(dateString) {
  * @param {string} type - Bootstrap alert type (success, danger, info, warning).
  */
 function showNotification(message, type = "info") {
-    const statusRow = document.getElementById("pull-status");
-    const statusCell = document.getElementById("pull-status-cell");
-    if (statusRow && statusCell) {
-        statusCell.innerHTML = `<div class="alert alert-${type} mb-0 border-0 rounded-0 py-2">${message}</div>`;
-        statusRow.classList.remove("d-none");
-        setTimeout(() => {
-            statusRow.classList.add("d-none");
-            statusCell.innerHTML = "";
-        }, 3000);
-    } else {
+    const container = document.getElementById("notification-container");
+    if (!container) {
         alert(message);
+        return;
     }
+
+    // Each notification is an independent element with its own dismiss timer,
+    // so stacking notifications never overwrite or cut each other short.
+    const toast = document.createElement("div");
+    toast.className = `alert alert-${type} shadow-sm mb-2 py-2`;
+    toast.setAttribute("role", "alert");
+    toast.innerHTML = message;
+    container.appendChild(toast);
+
+    setTimeout(() => toast.remove(), 3000);
 }
 
 /**

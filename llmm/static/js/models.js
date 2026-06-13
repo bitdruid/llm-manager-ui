@@ -372,6 +372,8 @@ async function pullModel() {
 
                         if (data.error) {
                             showNotification(`Error: ${data.error}`, "danger");
+                            statusRow.classList.add("d-none");
+                            statusCell.innerHTML = "";
                             btn.disabled = false;
                             btn.innerHTML = "Pull";
                             return;
@@ -402,6 +404,8 @@ async function pullModel() {
         showNotification(`Error: ${error.message}`, "danger");
     }
 
+    statusRow.classList.add("d-none");
+    statusCell.innerHTML = "";
     btn.disabled = false;
     btn.innerHTML = "Pull";
 }
