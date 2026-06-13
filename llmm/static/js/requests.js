@@ -10,12 +10,16 @@
  * @param {Array<Object>} params.messages - Chat messages.
  * @param {Object} [params.options] - Optional Ollama options.
  * @param {boolean} [params.think] - Enable thinking mode when supported.
+ * @param {Array<Object>} [params.tools] - Tool definitions when supported.
  * @returns {Promise<Response>} Fetch response.
  */
-async function chat({ model, messages, options = {}, think = false }) {
+async function chat({ model, messages, options = {}, think = false, tools = null }) {
     const body = { model, messages, options };
     if (think) {
         body.think = true;
+    }
+    if (tools && tools.length) {
+        body.tools = tools;
     }
 
     return fetch(withBasePath("/api/chat"), {

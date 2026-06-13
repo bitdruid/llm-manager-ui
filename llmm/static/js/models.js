@@ -235,6 +235,37 @@ async function loadTotalStorage() {
 }
 
 /**
+ * Fetch a model's capabilities (e.g. completion, tools, vision, thinking).
+ * @param {string} modelName - Name of the model to inspect.
+ * @returns {Promise<string[]>} Capability list, or empty array on error.
+ */
+async function fetchModelCapabilities(modelName) {
+    try {
+        const data = await fetchAPI(`/models/${encodeURIComponent(modelName)}/info`);
+        if (data && Array.isArray(data.capabilities)) {
+            return data.capabilities;
+        }
+    } catch (error) {
+        // Treat unreachable/errored model info as "no capabilities reported".
+    }
+    return [];
+}
+
+/**
+ * Render a model's capabilities as badges.
+ * @param {string[]} capabilities - Capability list.
+ * @returns {string} HTML markup.
+ */
+function renderCapabilities(capabilities) {
+    if (!capabilities.length) {
+        return '<span class="text-muted">-</span>';
+    }
+    return capabilities
+        .map((cap) => `<span class="badge bg-secondary me-1 mb-1">${escapeHtml(cap)}</span>`)
+        .join("");
+}
+
+/**
  * Load and display the models list table.
  */
 async function loadModelsList() {
@@ -259,15 +290,17 @@ async function loadModelsList() {
         return;
     }
 
-    container.innerHTML = data.models
-        .map((model) => {
+    // Capabilities aren't in the /models listing, so fetch each model's info in
+    // parallel to populate the Capabilities column.
+    const rows = await Promise.all(
+        data.models.map(async (model) => {
             const details = model.details || {};
             const params = details.parameter_size || "-";
-            const format = details.format || "-";
             const quant = details.quantization_level || "-";
             // Ensure size is a number, default to 0 if not available
             const sizeBytes = parseInt(model.size) || 0;
             const sizeDisplay = sizeBytes > 0 ? formatBytes(sizeBytes) : "-";
+            const capabilities = await fetchModelCapabilities(model.name);
             const fixedModel = isFixedModel(model.name);
             const deleteDisabled = fixedModel ? "disabled" : "";
             const deleteTitle = fixedModel ? "Fixed models cannot be deleted" : "Delete model";
@@ -280,7 +313,7 @@ async function loadModelsList() {
             <td data-sort="${model.name.toLowerCase()}" class="model-name-cell">${renderCopyableModelName(model.name)}</td>
             <td data-sort="${sizeBytes}">${sizeDisplay}</td>
             <td data-sort="${params.toLowerCase()}">${params}</td>
-            <td data-sort="${format.toLowerCase()}">${format}</td>
+            <td data-sort="${capabilities.join(",")}">${renderCapabilities(capabilities)}</td>
             <td data-sort="${quant.toLowerCase()}">${quant}</td>
             <td class="no-sort">
                 <div class="d-flex gap-1 justify-content-end align-items-center">
@@ -302,8 +335,10 @@ async function loadModelsList() {
             </td>
         </tr>
     `;
-        })
-        .join("");
+        }),
+    );
+
+    container.innerHTML = rows.join("");
 
     // Trigger a custom event to indicate table content has been updated
     const table = document.getElementById("models-table");

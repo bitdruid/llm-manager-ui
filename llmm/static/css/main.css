@@ -111,6 +111,7 @@ main {
 
 .model-name-cell {
     font-weight: 500;
+    text-align: left;
 }
 
 .model-name-button {
@@ -130,6 +131,7 @@ main {
     --bs-btn-active-border-color: transparent;
     text-decoration: none;
     vertical-align: baseline;
+    text-align: left;
     cursor: pointer;
     border: 0;
     box-shadow: none;

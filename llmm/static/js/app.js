@@ -96,6 +96,9 @@ document.addEventListener("DOMContentLoaded", function () {
     if (clearChatBtn) {
         clearChatBtn.addEventListener("click", clearChat);
     }
+
+    initSystemPrompt();
+    initThinking();
 });
 
 // Socket.io event handlers

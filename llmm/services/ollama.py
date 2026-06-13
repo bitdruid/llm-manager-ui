@@ -230,6 +230,7 @@ class OllamaService:
         messages: list[dict[str, str]],
         options: dict[str, Any] | None = None,
         think: bool = False,
+        tools: list[dict[str, Any]] | None = None,
     ):
         """Send a chat message to a model with streaming response.
 
@@ -239,6 +240,7 @@ class OllamaService:
             messages: List of message objects with 'role' and 'content'.
             options: Optional model parameters (temperature, top_k, top_p, etc.)
             think: Enable thinking/reasoning mode for supported models.
+            tools: Optional tool definitions for tool-capable models.
 
         Yields:
             JSON strings with response chunks.
@@ -251,6 +253,8 @@ class OllamaService:
             }
             if think:
                 payload["think"] = True
+            if tools:
+                payload["tools"] = tools
             if options:
                 payload["options"] = options
             async with httpx.AsyncClient(timeout=None) as client:

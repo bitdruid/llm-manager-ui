@@ -1,14 +1,14 @@
 [build-system]
-requires = [ "hatchling >= 1.26", "hatch-requirements-txt" ]
+requires = ["hatchling >= 1.26", "hatch-requirements-txt"]
 build-backend = "hatchling.build"
 
 
 [project]
 name = "llm-manager-ui"
-version = "1.1.0"
+version = "1.1.1"
 description = "Web UI to manage Ollama LLM server models"
 requires-python = ">=3.13"
-dynamic = [ "dependencies" ]
+dynamic = ["dependencies"]
 
 
 [[project.authors]]
@@ -29,8 +29,8 @@ file = "requirements.txt"
 
 
 [tool.hatch.build.targets.wheel]
-packages = [ "llmm" ]
-artifacts = [ "llmm/static/**", "llmm/templates/**" ]
+packages = ["llmm"]
+artifacts = ["llmm/static/**", "llmm/templates/**"]
 
 
 [tool.djlint]

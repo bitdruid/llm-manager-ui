@@ -5,6 +5,23 @@
     </head>
     <body>
         <div id="notification-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
+        <div class="modal fade" id="system-prompt-modal" tabindex="-1" aria-labelledby="system-prompt-modal-label" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="system-prompt-modal-label">System Prompt</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <textarea class="form-control" id="system-prompt-input" rows="6" placeholder="Enter a system prompt sent as a system message with each chat query..."></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" id="system-prompt-clear">Clear</button>
+                        <button type="button" class="btn btn-primary" id="system-prompt-save" data-bs-dismiss="modal">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <nav class="navbar navbar-expand-lg border-bottom sticky-top" id="main-navbar">
             <div class="container-fluid">
                 <a class="navbar-brand fw-bold" href="{{ base_path }}/">
@@ -139,7 +156,7 @@
                                                         Params
                                                     </th>
                                                     <th data-sort="string">
-                                                        Format
+                                                        Capabilities
                                                     </th>
                                                     <th data-sort="string">
                                                         Quant
@@ -223,6 +240,14 @@
                                                             Num Context
                                                         </label>
                                                         <input type="number" class="form-control form-control-sm" id="opt-num-ctx" value="4096" min="128" step="128">
+                                                    </div>
+                                                    <div class="col-md-3 col-6 d-flex align-items-end gap-2">
+                                                        <button class="btn btn-sm btn-outline-secondary" type="button" id="system-prompt-btn" data-bs-toggle="modal" data-bs-target="#system-prompt-modal" title="Set a system prompt">
+                                                            System Prompt
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-secondary" type="button" id="thinking-toggle-btn" aria-pressed="false" title="Toggle thinking mode">
+                                                            Thinking
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>

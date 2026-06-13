@@ -115,14 +115,15 @@ async def chat(data: dict[str, Any], endpoint: Endpoint = Depends(resolve_endpoi
     messages = data.get("messages", [])
     options = data.get("options")
     think = data.get("think", False)
+    tools = data.get("tools")
     if not model_name:
         return {"error": "Model name is required"}
     if not messages:
         return {"error": "Messages are required"}
-    logger.info(f"Chat with model: {model_name}, options: {options}, think: {think}")
+    logger.info(f"Chat with model: {model_name}, options: {options}, think: {think}, tools: {bool(tools)}")
 
     async def stream_response():
-        async for line in ollama_service.chat_stream(endpoint.url, model_name, messages, options, think):
+        async for line in ollama_service.chat_stream(endpoint.url, model_name, messages, options, think, tools):
             yield f"data: {line}\n\n"
 
     return StreamingResponse(stream_response(), media_type="text/event-stream")

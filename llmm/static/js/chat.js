@@ -7,6 +7,115 @@
 let chatMessages = [];
 let isGenerating = false;
 
+// Empty placeholder tool sent to tool-capable models: no arguments, no return.
+const EMPTY_TOOL_TEMPLATE = {
+    type: "function",
+    function: {
+        name: "placeholder",
+        description: "Takes no arguments and returns nothing.",
+        parameters: { type: "object", properties: {} },
+    },
+};
+
+const SYSTEM_PROMPT_KEY = "systemPrompt";
+
+/**
+ * Get the saved system prompt, trimmed (empty string when unset).
+ * @returns {string}
+ */
+function getSystemPrompt() {
+    return (localStorage.getItem(SYSTEM_PROMPT_KEY) || "").trim();
+}
+
+/**
+ * Persist (or clear) the system prompt and refresh the options indicator.
+ * @param {string} text - System prompt text.
+ */
+function setSystemPrompt(text) {
+    const value = (text || "").trim();
+    if (value) {
+        localStorage.setItem(SYSTEM_PROMPT_KEY, value);
+    } else {
+        localStorage.removeItem(SYSTEM_PROMPT_KEY);
+    }
+    updateSystemPromptIndicator();
+}
+
+/**
+ * Reflect whether a system prompt is set as the button's active state.
+ */
+function updateSystemPromptIndicator() {
+    const btn = document.getElementById("system-prompt-btn");
+    if (btn) {
+        btn.classList.toggle("active", Boolean(getSystemPrompt()));
+    }
+}
+
+/**
+ * Wire up the System Prompt modal (prefill, save, clear).
+ */
+function initSystemPrompt() {
+    const input = document.getElementById("system-prompt-input");
+    const saveBtn = document.getElementById("system-prompt-save");
+    const clearBtn = document.getElementById("system-prompt-clear");
+
+    if (input) {
+        input.value = getSystemPrompt();
+    }
+    if (saveBtn) {
+        saveBtn.addEventListener("click", () => setSystemPrompt(input ? input.value : ""));
+    }
+    if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+            if (input) input.value = "";
+            setSystemPrompt("");
+        });
+    }
+    updateSystemPromptIndicator();
+}
+
+const THINKING_KEY = "thinkingEnabled";
+
+/**
+ * Whether thinking mode is currently toggled on.
+ * @returns {boolean}
+ */
+function getThinkingEnabled() {
+    return localStorage.getItem(THINKING_KEY) === "true";
+}
+
+/**
+ * Persist the thinking toggle and refresh the button's active state.
+ * @param {boolean} enabled
+ */
+function setThinkingEnabled(enabled) {
+    localStorage.setItem(THINKING_KEY, enabled ? "true" : "false");
+    updateThinkingButton();
+}
+
+/**
+ * Reflect the thinking toggle as the button's active state.
+ */
+function updateThinkingButton() {
+    const btn = document.getElementById("thinking-toggle-btn");
+    if (btn) {
+        const enabled = getThinkingEnabled();
+        btn.classList.toggle("active", enabled);
+        btn.setAttribute("aria-pressed", enabled ? "true" : "false");
+    }
+}
+
+/**
+ * Wire up the Thinking toggle button.
+ */
+function initThinking() {
+    const btn = document.getElementById("thinking-toggle-btn");
+    if (btn) {
+        btn.addEventListener("click", () => setThinkingEnabled(!getThinkingEnabled()));
+    }
+    updateThinkingButton();
+}
+
 /**
  * Get the current prompt mode (always chat now).
  * @returns {string} 'chat'
@@ -61,28 +170,6 @@ function getPromptOptions() {
 }
 
 /**
- * Check if a model supports reasoning/thinking mode.
- * @param {string} modelName - Name of the model to check.
- * @returns {Promise<boolean>} True if model supports reasoning.
- */
-async function modelSupportsReasoning(modelName) {
-    try {
-        const data = await fetchAPI(`/models/${encodeURIComponent(modelName)}/info`);
-        if (data.error) {
-            return false;
-        }
-
-        if (Array.isArray(data.capabilities) && data.capabilities.includes("thinking")) {
-            return true;
-        } else {
-            return false;
-        }
-    } catch (error) {
-        return false;
-    }
-}
-
-/**
  * Load models into the chat model selector.
  */
 async function loadChatModelSelect() {
@@ -119,8 +206,8 @@ function renderChatMessages() {
     // streamed chunk and would otherwise collapse them again immediately.
     const openThinking = new Set(
         Array.from(container.querySelectorAll("details[data-thinking-index][open]")).map(
-            (el) => el.dataset.thinkingIndex
-        )
+            (el) => el.dataset.thinkingIndex,
+        ),
     );
 
     if (chatMessages.length === 0) {
@@ -138,17 +225,18 @@ function renderChatMessages() {
             const bgClass = isUser ? "bg-primary text-white" : "bg-body-secondary";
             const alignClass = isUser ? "ms-auto" : "me-auto";
             const label = isUser ? "You" : "Assistant";
-            // Handle thinking content
-            let content = msg.content;
+            const messageContent = md ? md.render(msg.content) : escapeHtml(msg.content);
+            let content = "";
             if (msg.thinking) {
                 const thinkingContent = md ? md.render(msg.thinking) : escapeHtml(msg.thinking);
-                const messageContent = md ? md.render(msg.content) : escapeHtml(msg.content);
-                content = `<details data-thinking-index="${index}" class="mb-2"><summary class="text-muted small">Thinking...</summary><div class="small text-muted">${thinkingContent}</div></details>${messageContent}`;
-            } else {
-                content = md ? md.render(msg.content) : escapeHtml(msg.content);
+                content += `<details data-thinking-index="${index}" class="mb-2"><summary class="text-muted small">Thinking...</summary><div class="small text-muted ms-3 ps-2 border-start" data-thinking-body="${index}">${thinkingContent}</div></details>`;
             }
+            content += `<div data-message-body="${index}">${messageContent}</div>`;
             const resendButton = isUser
-                ? `<button type="button" class="btn btn-sm btn-outline-light mt-2 py-0 px-2" onclick="resendMessage(${index})">Resend</button>`
+                ? `<div class="mt-2 d-flex gap-2">
+                       <button type="button" class="btn btn-sm btn-outline-light py-0 px-2" onclick="resendMessage(${index})">Resend</button>
+                       <button type="button" class="btn btn-sm btn-outline-light py-0 px-2" onclick="deleteMessage(${index})">Delete</button>
+                   </div>`
                 : "";
             return `
                 <div class="d-flex mb-2">
@@ -169,6 +257,41 @@ function renderChatMessages() {
     });
 
     container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * Update only the streaming message's thinking and content in place.
+ *
+ * Rebuilding the whole container per token (renderChatMessages) destroys and
+ * recreates the <details> element on every chunk, so a click meant to expand
+ * the thinking accordion never lands on a live element. Updating just the text
+ * nodes keeps the accordion persistent and clickable while the model streams.
+ * @param {number} index - Index of the message being streamed.
+ */
+function updateStreamingMessage(index) {
+    const container = document.getElementById("chat-messages");
+    if (!container) return;
+    const msg = chatMessages[index];
+    if (!msg) return;
+
+    // First thinking token: the accordion isn't in the DOM yet, so do one full
+    // render to insert it. Every subsequent update is in place.
+    if (msg.thinking && !container.querySelector(`details[data-thinking-index="${index}"]`)) {
+        renderChatMessages();
+        return;
+    }
+
+    // Only keep pinned to the bottom if the user hasn't scrolled up to read.
+    const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+
+    if (msg.thinking) {
+        const body = container.querySelector(`[data-thinking-body="${index}"]`);
+        if (body) body.innerHTML = md ? md.render(msg.thinking) : escapeHtml(msg.thinking);
+    }
+    const msgBody = container.querySelector(`[data-message-body="${index}"]`);
+    if (msgBody) msgBody.innerHTML = md ? md.render(msg.content) : escapeHtml(msg.content);
+
+    if (nearBottom) container.scrollTop = container.scrollHeight;
 }
 
 /**
@@ -206,6 +329,26 @@ async function resendMessage(messageIndex) {
 }
 
 /**
+ * Delete a user message together with its assistant response.
+ * @param {number} messageIndex - Index of the user message to delete.
+ */
+function deleteMessage(messageIndex) {
+    if (isGenerating) {
+        return;
+    }
+
+    const selectedMessage = chatMessages[messageIndex];
+    if (!selectedMessage || selectedMessage.role !== "user") {
+        return;
+    }
+
+    // Remove the user message and the assistant reply that follows it, if any.
+    const removeCount = chatMessages[messageIndex + 1]?.role === "assistant" ? 2 : 1;
+    chatMessages.splice(messageIndex, removeCount);
+    renderChatMessages();
+}
+
+/**
  * Send chat message content with current context.
  * @param {string} message - User message text.
  */
@@ -239,12 +382,17 @@ async function sendMessage(message) {
     renderChatMessages();
 
     try {
-        // Check if model supports reasoning before enabling think mode
-        const supportsReasoning = await modelSupportsReasoning(model);
+        // Thinking is controlled by the manual toggle; tools stay capability-driven.
+        const capabilities = await fetchModelCapabilities(model);
+        const supportsTools = capabilities.includes("tools");
         const promptMode = getPromptMode();
-        const contextMessages = chatMessages
-            .slice(0, -1)
-            .map((m) => ({ role: m.role, content: m.content }));
+        const contextMessages = chatMessages.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
+
+        // Prepend the system prompt (if set) so it leads the chat query.
+        const systemPrompt = getSystemPrompt();
+        if (systemPrompt) {
+            contextMessages.unshift({ role: "system", content: systemPrompt });
+        }
 
         const response =
             promptMode === "generate"
@@ -257,7 +405,11 @@ async function sendMessage(message) {
                       model: model,
                       messages: contextMessages,
                       options: options,
-                      think: supportsReasoning,
+                      think: getThinkingEnabled(),
+                      // Tool-capable models get an empty placeholder tool that
+                      // takes no args and returns nothing, so the tools path is
+                      // exercised without changing the conversation.
+                      tools: supportsTools ? [EMPTY_TOOL_TEMPLATE] : null,
                   });
 
         const reader = response.body.getReader();
@@ -284,13 +436,13 @@ async function sendMessage(message) {
                         // Chat mode response
                         if (data.message && data.message.content) {
                             chatMessages[chatMessages.length - 1].content += data.message.content;
-                            renderChatMessages();
+                            updateStreamingMessage(chatMessages.length - 1);
                         }
 
                         // Handle thinking content if present
                         if (data.message && data.message.thinking) {
                             chatMessages[chatMessages.length - 1].thinking += data.message.thinking;
-                            renderChatMessages();
+                            updateStreamingMessage(chatMessages.length - 1);
                         }
                     } catch (e) {}
                 }
