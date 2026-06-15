@@ -77,7 +77,7 @@ function showCopiedState(button) {
 }
 
 function initializeModelNameCopyHandlers() {
-    const containerIds = ["models-list", "running-models-list", "fixed-models-list"];
+    const containerIds = ["models-list", "running-models-list", "fixed-models-list", "endpoint-url"];
 
     containerIds.forEach((containerId) => {
         const container = document.getElementById(containerId);
